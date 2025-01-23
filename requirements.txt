@@ -1,0 +1,13 @@
+ase==3.23.0
+numpy>=2.0.0
+torch
+torch_geometric
+jarvis-tools
+scipy
+datasets==3.2.0
+matscipy>=0.7.0
+e3nn==0.5.4
+pprint
+torch_ema
+torchmetrics
+h5py

@@ -1,0 +1,10 @@
+Metadata-Version: 2.1
+Name: hforge
+Version: 0.1
+Requires-Dist: ase==3.23.0
+Requires-Dist: numpy==2.0.0
+Requires-Dist: torch
+Requires-Dist: torch_geometric
+Requires-Dist: jarvis-tools
+Requires-Dist: scipy
+Requires-Dist: datasets==3.2.0

@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import MessagePassing
+from torch_geometric.utils import coalesce
 
-#TODO: Add shifts
+
 class EdgeAggregator(MessagePassing):
     def __init__(self, edge_dim_radial, edge_dim_angular, hidden_dim, num_layers=3):
         """
@@ -22,14 +23,14 @@ class EdgeAggregator(MessagePassing):
         self.radial_mlp.append(nn.Linear(edge_dim_radial, hidden_dim))
         for _ in range(num_layers - 2):
             self.radial_mlp.append(nn.Linear(hidden_dim, hidden_dim))
-        self.radial_mlp.append(nn.Linear(hidden_dim, 1))
+        self.radial_mlp.append(nn.Linear(hidden_dim, edge_dim_radial))  # Output same dimension as input
 
         # MLP for angular embeddings
         self.angular_mlp = nn.ModuleList()
         self.angular_mlp.append(nn.Linear(edge_dim_angular, hidden_dim))
         for _ in range(num_layers - 2):
             self.angular_mlp.append(nn.Linear(hidden_dim, hidden_dim))
-        self.angular_mlp.append(nn.Linear(hidden_dim, 1))
+        self.angular_mlp.append(nn.Linear(hidden_dim, edge_dim_angular))  # Output same dimension as input
 
     def forward(self, radial_embedding, angular_embedding, edge_index):
         """
@@ -41,32 +42,55 @@ class EdgeAggregator(MessagePassing):
             edge_index (torch.Tensor): Edge indices of shape [2, num_edges]
 
         Returns:
-            tuple: Aggregated radial and angular features per node, and clean edge index without duplicates
+            tuple: Processed radial and angular embeddings, and coalesced edge index
         """
-        # Get clean edge index without duplicates (for cases where you need it)
-        # This ensures we consider source->target pairs as unique edges
-        edge_tuples = [(edge_index[0, i].item(), edge_index[1, i].item()) for i in range(edge_index.shape[1])]
-        unique_tuples = list(set(edge_tuples))
-        clean_src = [e[0] for e in unique_tuples]
-        clean_dst = [e[1] for e in unique_tuples]
-        clean_edge_index = torch.tensor([clean_src, clean_dst], dtype=edge_index.dtype, device=edge_index.device)
+        # Process edge embeddings directly with MLPs (no propagation yet)
+        radial_out = self._process_embedding(radial_embedding, self.radial_mlp)
+        angular_out = self._process_embedding(angular_embedding, self.angular_mlp)
 
-        # Process edges using message passing (still using original edge_index for proper embedding matching)
-        radial_out = self.propagate(edge_index,
-                                    x=None,
-                                    embedding=radial_embedding,
-                                    mlp=self.radial_mlp)
+        # Get number of nodes to use for coalescing
+        num_nodes = edge_index.max().item() + 1
 
-        angular_out = self.propagate(edge_index,
-                                     x=None,
-                                     embedding=angular_embedding,
-                                     mlp=self.angular_mlp)
+        # Use coalesce to directly aggregate the embeddings
+        clean_edge_index, radial_clean = coalesce(
+            edge_index=edge_index,
+            edge_attr=radial_out,
+            num_nodes=num_nodes,
+            reduce="mean"  # Use mean to average duplicate edges
+        )
 
-        return radial_out, angular_out, clean_edge_index
+        # Do the same for angular embeddings
+        _, angular_clean = coalesce(
+            edge_index=edge_index,
+            edge_attr=angular_out,
+            num_nodes=num_nodes,
+            reduce="mean"  # Use mean to average duplicate edges
+        )
+
+        return radial_clean, angular_clean, clean_edge_index
+
+    def _process_embedding(self, embedding, mlp):
+        """
+        Process embeddings through MLP.
+
+        Args:
+            embedding (torch.Tensor): Edge embeddings
+            mlp (nn.ModuleList): MLP to process the embeddings
+
+        Returns:
+            torch.Tensor: Processed embeddings
+        """
+        x = embedding
+        for i, layer in enumerate(mlp):
+            x = layer(x)
+            if i < len(mlp) - 1:  # Apply non-linearity except for the last layer
+                x = F.relu(x)
+        return x
 
     def message(self, embedding, mlp):
         """
         Process embeddings through MLP to compute weights and weighted embeddings.
+        This is used during propagation.
 
         Args:
             embedding (torch.Tensor): Edge embeddings (radial or angular)
@@ -87,20 +111,6 @@ class EdgeAggregator(MessagePassing):
 
         # Return weighted embedding
         return weight * embedding
-
-    def update(self, aggr_out, x=None):
-        """
-        Update node embeddings.
-
-        Args:
-            aggr_out (torch.Tensor): Aggregated features for each node after message passing
-            x (torch.Tensor): Original node features (if any)
-
-        Returns:
-            torch.Tensor: Updated node embeddings
-        """
-        # Just return the aggregated output
-        return aggr_out
 
 
 # Example usage
@@ -131,12 +141,9 @@ def example():
     print(f"  Original edge index: {edge_index.tolist()}")
 
     print(f"\nOutput shapes:")
-    print(f"  Aggregated radial features: {radial_out.shape}")
-    print(f"  Aggregated angular features: {angular_out.shape}")
+    print(f"  Processed radial features: {radial_out.shape}")
+    print(f"  Processed angular features: {angular_out.shape}")
     print(f"  Clean edge index: {clean_edge_index.tolist()}")
-
-    # The expected shapes would be [max_node_idx + 1, edge_dim_*]
-    # Here, nodes are [0,1,2], so we expect 3 nodes in the output
 
 
 if __name__ == "__main__":

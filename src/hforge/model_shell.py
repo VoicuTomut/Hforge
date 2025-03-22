@@ -137,6 +137,7 @@ class ModelShell(torch.nn.Module):
 
 
         # Edge agregator:
+        print("edge_index:", graph_data["edge_index"])
         if self.edge_aggregator is not None:
             embeddings['edges']['radial_embedding'], embeddings['edges']['angular_embedding'], graph_data["edge_index"]=self.edge_aggregator(
                 edge_index=graph_data["edge_index"],

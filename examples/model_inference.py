@@ -12,12 +12,12 @@ from hforge.model_shell import ModelShell
 
 def main():
     # Load the dataset and extract a toy sample
-    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_2")
+    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_32")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
     print(dataset)
     # Playing_row
-    row_index = 2
+    row_index = 4
     sample = dataset[row_index]  # Replace 'train' with the correct split if applicable
 
     # Preproces the sample to graph form:

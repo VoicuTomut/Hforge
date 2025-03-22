@@ -39,15 +39,15 @@ class MatrixExtractionHead(nn.Module):
 
         return matrix
 
-
-class EquivariantMessagePassing(nn.Module):
+#TODO: Make it equivariant
+class MessagePassing(nn.Module):
     """
     Message passing layer that updates node and edge features.
     Focuses on edge updates as specified in the requirements.
     """
 
     def __init__(self, node_dim, edge_radial_dim, edge_angular_dim, hidden_dim=128):
-        super(EquivariantMessagePassing, self).__init__()
+        super(MessagePassing, self).__init__()
 
         # Combined edge dimension
         edge_combined_dim = edge_radial_dim + edge_angular_dim
@@ -152,7 +152,7 @@ class EdgeExtractionBasic(nn.Module):
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
 
         # Initialize the message passing layer
-        self.message_passing = EquivariantMessagePassing(
+        self.message_passing = MessagePassing(
             node_dim=self.input_dim,
             edge_radial_dim=self.edge_radial_dim,
             edge_angular_dim=self.edge_angular_dim,
@@ -193,8 +193,15 @@ class EdgeExtractionBasic(nn.Module):
         edge_radial = embeddings['edges']['radial_embedding']
         edge_angular = embeddings['edges']['angular_embedding']
 
+
+
         # Get edge connectivity
         edge_index = graph_data.edge_index
+
+        print("node_features:", node_features.shape)
+        print("edge_radial:", edge_radial.shape)
+        print("edge_angular:", edge_angular.shape)
+        print("-edge_index:", edge_index)
 
         # 1. Apply equivariant message passing to update node and edge features
         updated_node_features, updated_edge_features = self.message_passing(

@@ -6,3 +6,6 @@ set up the enviroment:
 '''
 pip install -e .
 '''
+
+
+# TODO : Add shifts when edge agregate:

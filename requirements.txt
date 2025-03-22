@@ -6,8 +6,7 @@ jarvis-tools
 scipy
 datasets==3.2.0
 matscipy>=0.7.0
-e3nn==0.5.4
-pprint
+e3nn
 torch_ema
 torchmetrics
 h5py

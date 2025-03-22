@@ -60,7 +60,22 @@ def main():
             "correlation":3, # correlation order of the messages (body order - 1)
             "num_elements":2,
             "max_ell":2,
-        }
+        },
+
+        "edge_extraction":{
+            "orbitals":orbitals,
+            "hidden_dim_message_passing":300,
+            "hidden_dim_matrix_extraction":200,
+
+        },
+
+        "node_extraction": {
+            "orbitals": orbitals,
+            "hidden_dim_message_passing": 300,
+            "hidden_dim_matrix_extraction": 200,
+
+        },
+
     }
     model=ModelShell(
         config_model
@@ -69,10 +84,6 @@ def main():
     # Inference results
     output_graph=model(sample_graph)
     print(f"Output graph: {output_graph}")
-
-
-
-
 
 
 

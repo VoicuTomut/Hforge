@@ -10,3 +10,4 @@ e3nn
 torch_ema
 torchmetrics
 h5py
+plotly

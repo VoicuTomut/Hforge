@@ -24,7 +24,7 @@ from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
 
 
-def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=4, cutoff=3.0, max_samples=None):
+def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutoff=4.0, max_samples=None):
     """
     Prepare dataset for training
 
@@ -53,6 +53,8 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=4, cutof
         # Break if we've reached max_samples
         if max_samples is not None and sample_count >= max_samples:
             break
+
+    print("graph generation done!")
 
     # Split into train and validation
     split_idx = int(len(graph_dataset) * split_ratio)
@@ -400,7 +402,7 @@ def main():
         split_ratio=0.8,
         batch_size=4,
         cutoff=3.0,
-        max_samples=10  # Limit samples for testing/debugging
+        max_samples=20  # Limit samples for testing/debugging
     )
 
     # Initialize model
@@ -458,7 +460,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 50
+    num_epochs = 100
     save_path = "best_model.pt"
 
     model, history = trainer.train(num_epochs, save_path)

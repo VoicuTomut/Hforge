@@ -294,7 +294,7 @@ def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
 
 def main():
     # Load the dataset and extract a toy sample
-    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_32")
+    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
     print(dataset)

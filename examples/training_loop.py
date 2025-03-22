@@ -460,7 +460,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 100
+    num_epochs = 300
     save_path = "best_model.pt"
 
     model, history = trainer.train(num_epochs, save_path)

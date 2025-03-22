@@ -149,7 +149,7 @@ class ModelShell(torch.nn.Module):
 
         # Extract information:
         print("# Extract information:")
-        model_results= {"edge_indes":graph_data["edge_index"]}
+        model_results= {"edge_index":graph_data["edge_index"]}
         if self.edge_extraction is not None:
             edge_description=self.edge_extraction(graph_data,embeddings,atomic_env_descriptor )
             model_results["edge_description"]=edge_description

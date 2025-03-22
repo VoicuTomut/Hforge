@@ -12,7 +12,7 @@ from hforge.model_shell import ModelShell
 
 def main():
     # Load the dataset and extract a toy sample
-    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_32")
+    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
     print(dataset)
@@ -82,8 +82,15 @@ def main():
     )
 
     # Inference results
+    print("__________")
+    print(sample_graph)
     output_graph=model(sample_graph)
-    print(f"Output graph: {output_graph}")
+    print(f"Output graph: {output_graph.keys()}")
+    for key in output_graph.keys():
+        print(f"{key}: {output_graph[key].shape}")
+    print("__________")
+    print(sample_graph)
+
 
 
 

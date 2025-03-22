@@ -196,12 +196,12 @@ class EdgeExtractionBasic(nn.Module):
 
 
         # Get edge connectivity
-        edge_index = graph_data.edge_index
+        edge_index = graph_data["reduce_edge_index"]
 
         print("node_features:", node_features.shape)
         print("edge_radial:", edge_radial.shape)
         print("edge_angular:", edge_angular.shape)
-        print("-edge_index:", edge_index)
+        print("-edge_index:", edge_index.shape)
 
         # 1. Apply equivariant message passing to update node and edge features
         updated_node_features, updated_edge_features = self.message_passing(
@@ -243,4 +243,4 @@ class EdgeExtractionBasic(nn.Module):
         # This stacks all matrices along a new first dimension
         hopping_tensor = torch.stack(hoppings) if hoppings else torch.tensor([])
 
-        return {"hoppings": hopping_tensor}
+        return  hopping_tensor

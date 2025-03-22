@@ -189,7 +189,7 @@ class NodeExtractionBasic(nn.Module):
         edge_angular = embeddings['edges']['angular_embedding']
 
         # Get edge connectivity
-        edge_index = graph_data.edge_index
+        edge_index = graph_data["reduce_edge_index"]
 
         # 1. Apply equivariant message passing to update node features based on their environment
         updated_node_features, _ = self.message_passing(
@@ -215,4 +215,4 @@ class NodeExtractionBasic(nn.Module):
         on_site_tensor = torch.stack(on_sites) if on_sites else torch.tensor([])
 
 
-        return {"onsite": on_site_tensor}
+        return on_site_tensor

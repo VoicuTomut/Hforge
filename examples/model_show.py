@@ -388,7 +388,7 @@ def main():
     print("predicted_h:", predicted_h.shape)
 
     # Create the 4-panel comparison plot
-    fig = plot_comparison_matrices(original_h, predicted_h, save_path="matrix_comparison.html")
+    fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="matrix_comparison.html")
 
     # Display the plot
     fig.show()

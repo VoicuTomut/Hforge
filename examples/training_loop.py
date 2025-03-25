@@ -84,8 +84,8 @@ def cost_function(pred_graph, target_graph):
     edge_pred = pred_graph["edge_description"]
     node_pred = pred_graph["node_description"]
 
-    edge_target = target_graph["edge_description"]
-    node_target = target_graph["node_description"]
+    edge_target = target_graph["edge_description"]*100
+    node_target = target_graph["node_description"]*100
 
     # Compute MSE loss for both matrices
     edge_loss = torch.nn.functional.mse_loss(edge_pred, edge_target)
@@ -431,8 +431,8 @@ def main():
         },
         "edge_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 300,
-            "hidden_dim_matrix_extraction": 200,
+            "hidden_dim_message_passing": 400,
+            "hidden_dim_matrix_extraction": 300,
         },
         "node_extraction": {
             "orbitals": orbitals,
@@ -460,7 +460,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 300
+    num_epochs = 600
     save_path = "best_model.pt"
 
     model, history = trainer.train(num_epochs, save_path)

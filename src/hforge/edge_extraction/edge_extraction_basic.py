@@ -21,6 +21,10 @@ class MatrixExtractionHead(nn.Module):
             nn.SiLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LeakyReLU(),
             nn.Linear(hidden_dim, self.output_dim)
         )
 
@@ -63,6 +67,12 @@ class MessagePassing(nn.Module):
         self.edge_update = nn.Sequential(
             nn.Linear(edge_combined_dim + 2 * node_dim, hidden_dim),
             nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, int(hidden_dim/2)),
+            nn.SiLU(),
+            nn.Linear(int(hidden_dim/2), hidden_dim),
+            nn.LeakyReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.SiLU(),
             nn.Linear(hidden_dim, edge_combined_dim)

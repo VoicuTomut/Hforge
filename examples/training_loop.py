@@ -431,13 +431,13 @@ def main():
         },
         "edge_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 400,
-            "hidden_dim_matrix_extraction": 300,
+            "hidden_dim_message_passing": 800,
+            "hidden_dim_matrix_extraction": 800,
         },
         "node_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 300,
-            "hidden_dim_matrix_extraction": 200,
+            "hidden_dim_message_passing": 800,
+            "hidden_dim_matrix_extraction": 800,
         },
     }
 
@@ -460,7 +460,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 600
+    num_epochs = 2000
     save_path = "best_model.pt"
 
     model, history = trainer.train(num_epochs, save_path)
@@ -477,10 +477,10 @@ def main():
     output_graph = model(sample_graph)
 
     # Print output
-    print("\nInference with trained model:")
-    print(f"Output graph keys: {output_graph.keys()}")
-    for key in output_graph.keys():
-        print(f"{key}: {output_graph[key].shape}")
+    # print("\nInference with trained model:")
+    #print(f"Output graph keys: {output_graph.keys()}")
+    #for key in output_graph.keys():
+    #    print(f"{key}: {output_graph[key].shape}")
 
 
 if __name__ == "__main__":

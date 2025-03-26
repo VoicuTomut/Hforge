@@ -294,7 +294,7 @@ def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
 
 def main():
     # Load the dataset and extract a toy sample
-    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3")
+    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_32")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
     print(dataset)
@@ -318,46 +318,38 @@ def main():
 
     # Initialize model
     avg_num_neighbors = 8
-    config_model={
-        "embedding":{
-
-            'hidden_irreps': "8x0e+8x1o",# 8: number of embedding channels, 0e, 1o is specifying which equivariant messages to use. Here up to L_max=1
-
-            "r_max":3,
-            "num_bessel":8,
-            "num_polynomial_cutoff":6,
-            "radial_type":"bessel",
-            "distance_transform":None,
+    config_model = {
+        "embedding": {
+            'hidden_irreps': "8x0e+8x1o",
+            "r_max": 3,
+            "num_bessel": 8,
+            "num_polynomial_cutoff": 6,
+            "radial_type": "bessel",
+            "distance_transform": None,
             "max_ell": 2,
-            "num_elements":2,
-
+            "num_elements": 2,
         },
-        "atomic_descriptors":{
-            'hidden_irreps': "8x0e+8x1o", ## 8: number of embedding channels, 0e, 1o is specifying which equivariant messages to use. Here up to L_max=1
+        "atomic_descriptors": {
+            'hidden_irreps': "8x0e+8x1o",
             "interaction_cls_first": RealAgnosticResidualInteractionBlock,
             "interaction_cls": RealAgnosticResidualInteractionBlock,
-            'avg_num_neighbors':avg_num_neighbors , # need to be computed
-            "radial_mlp" : [64, 64, 64],
+            'avg_num_neighbors': avg_num_neighbors,
+            "radial_mlp": [64, 64, 64],
             'num_interactions': 2,
-            "correlation":3, # correlation order of the messages (body order - 1)
-            "num_elements":2,
-            "max_ell":2,
+            "correlation": 3,
+            "num_elements": 2,
+            "max_ell": 2,
         },
-
-        "edge_extraction":{
-            "orbitals":orbitals,
-            "hidden_dim_message_passing":300,
-            "hidden_dim_matrix_extraction":200,
-
+        "edge_extraction": {
+            "orbitals": orbitals,
+            "hidden_dim_message_passing": 400,
+            "hidden_dim_matrix_extraction": 500,
         },
-
         "node_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 300,
-            "hidden_dim_matrix_extraction": 200,
-
+            "hidden_dim_message_passing": 400,
+            "hidden_dim_matrix_extraction": 500,
         },
-
     }
 
 
@@ -388,7 +380,7 @@ def main():
     print("predicted_h:", predicted_h.shape)
 
     # Create the 4-panel comparison plot
-    fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="matrix_comparison.html")
+    fig = plot_comparison_matrices(original_h, predicted_h*100, save_path="matrix_comparison.html")
 
     # Display the plot
     fig.show()

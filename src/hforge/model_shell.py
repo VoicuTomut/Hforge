@@ -116,9 +116,9 @@ class ModelShell(torch.nn.Module):
 
         # Embeddings
         embeddings=self.embedding(graph_data)
-        print("##! embeddings ##")
+        #print("##! embeddings ##")
         #pretty_print_dict(embeddings)
-        print("## embeddings !##")
+        #print("## embeddings !##")
         #/Embeddings
 
 
@@ -128,14 +128,14 @@ class ModelShell(torch.nn.Module):
             embeddings=embeddings,
 
         )
-        print("##! descriptor ##")
+        #print("##! descriptor ##")
         #pretty_print_dict(atomic_env_descriptor)
-        print("## descriptor !##")
+        #print("## descriptor !##")
         # /interaction :
 
 
         # Edge agregator:
-        print("edge_index:", graph_data["edge_index"])
+        #print("edge_index:", graph_data["edge_index"])
         if self.edge_aggregator is not None:
             embeddings['edges']['radial_embedding'], embeddings['edges']['angular_embedding'], graph_data["reduce_edge_index"]=self.edge_aggregator(
                 edge_index=graph_data["edge_index"],
@@ -148,7 +148,7 @@ class ModelShell(torch.nn.Module):
 
 
         # Extract information:
-        print("# Extract information:")
+        #print("# Extract information:")
         model_results= {"edge_index":graph_data["edge_index"]}
         if self.edge_extraction is not None:
             edge_description=self.edge_extraction(graph_data,embeddings,atomic_env_descriptor )

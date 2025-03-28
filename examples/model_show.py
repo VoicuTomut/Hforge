@@ -111,8 +111,8 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None):
                 title="Value",
                 thickness=15,
                 len=0.4,
-                y=0.8,  # Position in the middle of the top row
-                x=0.85  # Position to the right of the first column
+                y=0.80,  # Position in the middle of the top row
+                x=0.425  # Position to the right of the first column
             )
         ),
         row=1, col=1
@@ -128,7 +128,13 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None):
             zmin=-max_val,
             zmax=max_val,
             zmid=0,
-            showscale=False  # No colorbar to avoid duplication
+            colorbar=dict(
+                title="Value",
+                thickness=15,
+                len=0.4,
+                y=0.80,  # Position in the middle of the top row
+                x=1.0  # Position to the right of the first column
+            )
         ),
         row=1, col=2
     )
@@ -147,8 +153,8 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None):
                 title="Difference",
                 thickness=15,
                 len=0.4,
-                y=0.2,  # Position in the middle of the bottom row
-                x=0.85  # Position to the right of the first column
+                y=0.20,  # Position in the middle of the bottom row
+                x=0.425  # Position to the right of the first column
             )
         ),
         row=2, col=1
@@ -168,8 +174,8 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None):
                 title="% Difference",
                 thickness=15,
                 len=0.4,
-                y=0.2,  # Position in the middle of the bottom row
-                x=1.05,  # Position to the right of the second column
+                y=0.20,  # Position in the middle of the bottom row
+                x=1.0,  # Position to the right of the second column
                 tickvals=[-100, -50, 0, 50, 100],
                 ticktext=["-100%", "-50%", "0%", "50%", "100%"]
             )
@@ -320,7 +326,10 @@ def main():
     avg_num_neighbors = 8
     config_model = {
         "embedding": {
+
             'hidden_irreps': "8x0e+8x1o",
+            # 8: number of embedding channels, 0e, 1o is specifying which equivariant messages to use. Here up to L_max=1
+
             "r_max": 3,
             "num_bessel": 8,
             "num_polynomial_cutoff": 6,
@@ -328,28 +337,35 @@ def main():
             "distance_transform": None,
             "max_ell": 2,
             "num_elements": 2,
+
         },
         "atomic_descriptors": {
             'hidden_irreps': "8x0e+8x1o",
+            ## 8: number of embedding channels, 0e, 1o is specifying which equivariant messages to use. Here up to L_max=1
             "interaction_cls_first": RealAgnosticResidualInteractionBlock,
             "interaction_cls": RealAgnosticResidualInteractionBlock,
-            'avg_num_neighbors': avg_num_neighbors,
+            'avg_num_neighbors': avg_num_neighbors,  # need to be computed
             "radial_mlp": [64, 64, 64],
-            'num_interactions': 2,
-            "correlation": 3,
+            'num_interactions': 3,
+            "correlation": 4,  # correlation order of the messages (body order - 1)
             "num_elements": 2,
             "max_ell": 2,
         },
+
         "edge_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 400,
-            "hidden_dim_matrix_extraction": 500,
+            "hidden_dim_message_passing": 800,
+            "hidden_dim_matrix_extraction": 800,
+
         },
+
         "node_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 400,
-            "hidden_dim_matrix_extraction": 500,
+            "hidden_dim_message_passing": 800,
+            "hidden_dim_matrix_extraction": 800,
+
         },
+
     }
 
 
@@ -373,14 +389,14 @@ def main():
     print(sample_graph)
 
 
-    original_h=reconstruct_matrix(output_graph["edge_description"],output_graph["node_description"], output_graph["edge_index"])
-    predicted_h=reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
+    predicted_h=reconstruct_matrix(output_graph["edge_description"],output_graph["node_description"], output_graph["edge_index"])
+    original_h=reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
 
     print("original_h:", original_h.shape)
     print("predicted_h:", predicted_h.shape)
 
     # Create the 4-panel comparison plot
-    fig = plot_comparison_matrices(original_h, predicted_h*100, save_path="matrix_comparison.html")
+    fig = plot_comparison_matrices(original_h, predicted_h*0.01, save_path="matrix_comparison_New.html")
 
     # Display the plot
     fig.show()

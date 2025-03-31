@@ -26,7 +26,7 @@ from hforge.model_shell import ModelShell
 
 def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutoff=4.0, max_samples=None):
     """
-    Prepare dataset for training
+    Prepare dataset for training by returning the train and validation data loaders.
 
     Args:
         dataset_path: Path to the dataset
@@ -54,7 +54,7 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         if max_samples is not None and sample_count >= max_samples:
             break
 
-    print("graph generation done!")
+    print("Graph generation done!")
 
     # Split into train and validation
     split_idx = int(len(graph_dataset) * split_ratio)
@@ -65,20 +65,21 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    print(f"Created {len(train_dataset)} training samples and {len(val_dataset)} validation samples")
+    print(f"Created {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
     return train_loader, val_loader
 
 
 def cost_function(pred_graph, target_graph):
     """
-    Calculate loss between predicted and target Hamiltonian and overlap matrices.
+    Calculate loss using MeanSquaredError between predicted and target Hamiltonian and overlap matrices.
 
     Args:
         pred_graph: Dictionary containing predicted edge_description (h_hop) and node_description (s_on_sites)
         target_graph: Dictionary containing target h_hop and s_on_sites values
 
     Returns:
-        Total loss combining Hamiltonian and overlap matrix losses
+        total_loss: The sum of edge_loss and node_loss.
+        (Dict): Dictionary containing edge_loss and node_loss separately.
     """
     # Extract predictions and targets
     edge_pred = pred_graph["edge_description"]
@@ -100,7 +101,7 @@ def cost_function(pred_graph, target_graph):
 ## TRAINER ##
 class Trainer:
     def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
-                 use_comet=False, live_plot=True, plot_update_freq=1, plot_path="training_plot.png"):
+                 use_comet=False, live_plot=True, plot_update_freq=1, plot_path=os.path.abspath("./results/training_plot.png")):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -134,7 +135,12 @@ class Trainer:
             self.epochs = []
 
     def train_epoch(self):
-        """Run one epoch of training"""
+        """Run one epoch of training
+
+        Returns:
+            avg_loss: Average total loss for the epoch.
+            (Dict): Dictionary containing average edge loss and average node loss separately.
+        """
         self.model.train()
         total_loss = 0.0
         total_edge_loss = 0.0
@@ -150,7 +156,7 @@ class Trainer:
 
             # Create target graph
             target_graph = {
-                "edge_index": pred_graph["edge_index"],  # Note the typo in the key name
+                "edge_index": pred_graph["edge_index"],
                 "edge_description": batch.h_hop,
                 "node_description": batch.s_on_sites
             }
@@ -178,8 +184,14 @@ class Trainer:
         return avg_loss, {"edge_loss": avg_edge_loss, "node_loss": avg_node_loss}
 
     def validate(self):
-        """Run validation"""
+        """Run validation of the model
+
+        Returns:
+            avg_loss: Average total loss for the epoch.
+            (Dict): Dictionary containing average edge loss and average node loss separately.
+        """
         self.model.eval()
+
         total_loss = 0.0
         total_edge_loss = 0.0
         total_node_loss = 0.0
@@ -251,17 +263,22 @@ class Trainer:
             save_path: Path to save the best model (optional)
 
         Returns:
-            Trained model and history of training/validation losses
+            model: Trained model
+            history (Dict): History of training/validation losses
         """
         history = {
+            # Total losses
             'train_loss': [],
             'val_loss': [],
+
+            # Component losses
             'train_edge_loss': [],
             'train_node_loss': [],
             'val_edge_loss': [],
             'val_node_loss': [],
         }
 
+        # Track the time of training.
         start_time = time.time()
 
         for epoch in range(num_epochs):
@@ -341,7 +358,7 @@ class Trainer:
         return self.model, history
 
     def create_final_plots(self, history):
-        """Create final detailed plots from history"""
+        """Create final detailed plots from history of  training/validation losses"""
         plt.figure(figsize=(12, 8))
 
         # Main loss plot
@@ -380,7 +397,7 @@ class Trainer:
 
 def main():
     # Configuration
-    dataset_path = "/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_32"
+    dataset_path = "./Data/aBN_HSX/nr_atoms_32"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Define orbital configuration based on atomic types
@@ -460,8 +477,8 @@ def main():
     )
 
     # Train the model
-    num_epochs = 600
-    save_path = "best_model.pt"
+    num_epochs = 2
+    save_path = os.path.abspath("./results/best_model.pt")
 
     model, history = trainer.train(num_epochs, save_path)
 

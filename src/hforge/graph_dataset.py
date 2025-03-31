@@ -24,11 +24,11 @@ def create_graph(atomic_numbers, atomic_coordinates, edge_index,shifts, h_on_sit
     x = torch.tensor(atomic_numbers, dtype=torch.float).view(-1, 1)  # Node atomic numbers as features
     pos = torch.tensor(atomic_coordinates, dtype=torch.float)  # Node positions
     edge_index = torch.tensor(edge_index, dtype=torch.long)  # Edge connections
-    h_on_sites = torch.tensor(h_on_sites, dtype=torch.float)  # Node on-site Hamiltonian
-    s_on_sites = torch.tensor(s_on_sites, dtype=torch.float)  # Node on-site overlap
-    h_hop = torch.tensor(h_hop, dtype=torch.float)  # Edge hopping Hamiltonian
-    s_hop = torch.tensor(s_hop, dtype=torch.float)  # Edge hopping overlap
-    shifts = torch.tensor(shifts, dtype=torch.float)
+    h_on_sites = torch.tensor(np.array(h_on_sites), dtype=torch.float)  # Node on-site Hamiltonian
+    s_on_sites = torch.tensor(np.array(s_on_sites), dtype=torch.float)  # Node on-site overlap
+    h_hop = torch.tensor(np.array(h_hop), dtype=torch.float)  # Edge hopping Hamiltonian
+    s_hop = torch.tensor(np.array(s_hop), dtype=torch.float)  # Edge hopping overlap
+    shifts = torch.tensor(np.array(shifts), dtype=torch.float)
 
     # Create a graph data object
     data = Data(
@@ -103,27 +103,27 @@ class AtomicGraphDataset(Dataset):
 def graph_from_row(row,orbitals, cutoff=3.0):
     # Now let's pass it tru mace:
     positions = np.array(row["atomic_positions"])
-    print("positions.shape:", positions.shape)
+    # print("positions.shape:", positions.shape)
     cell = np.array(row["lattice_vectors"])
-    print("cell.shape:", cell.shape)
+    # print("cell.shape:", cell.shape)
     edge_index, shifts, unit_shifts, cell = get_neighborhood(positions=positions,
                                                              cutoff=cutoff,
                                                              pbc=(True, True, True),
                                                              cell=cell,
                                                              true_self_interaction=False)
 
-    print(f"{edge_index=},\n {shifts=},\n {unit_shifts=},\n {cell=}")
+    # print(f"{edge_index=},\n {shifts=},\n {unit_shifts=},\n {cell=}")
 
     # Now we finally have al the information required for building a graph
     # One extra detail that we need to se up the nr of atom tipes that our mode will handle and the orbitals:
 
     # For etch edge is time now to extract the describing block save for the onsites for both H and S matrix
     proces_edges = preprocess_edges(edge_index)
-    print("h matrix:", row['h_matrix'])
+    # print("h matrix:", row['h_matrix'])
     hm = np.array(row['h_matrix'])
-    print("h matrix.shape:", hm.shape)
+    # print("h matrix.shape:", hm.shape)
     sm = np.array(row['h_matrix'])
-    print("s matrix.shape:", sm.shape)
+    # print("s matrix.shape:", sm.shape)
 
     h_on_sites, h_hop = decompose_matrix(system_mat=hm,
                                          orbitals=orbitals,

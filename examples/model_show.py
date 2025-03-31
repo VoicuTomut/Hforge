@@ -16,7 +16,8 @@ from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 
 def plot_comparison_matrices(original_h, predicted_h, save_path=None):
@@ -255,7 +256,7 @@ def reconstruct_matrix(hop, onsite, reduce_edge_index):
 
     return full_matrix
 
-def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
+def load_best_model(model, optimizer=None, path="./results/best_model.pt", device='cpu'):
     """
     Load the best model checkpoint from the saved file
 
@@ -271,11 +272,12 @@ def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
         epoch: The epoch at which the model was saved
         history: Training history dictionary
     """
+    path = os.path.abspath(path)
     if not os.path.exists(path):
         print(f"No saved model found at {path}")
         return model, optimizer, 0, {}
 
-    checkpoint = torch.load(path, map_location=device)
+    checkpoint = torch.load(path, map_location=device, weights_only=False)
 
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
@@ -294,13 +296,13 @@ def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
 
 def main():
     # Load the dataset and extract a toy sample
-    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3")
+    dataset = load_from_disk("./Data/aBN_HSX/nr_atoms_3")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
     print(dataset)
     # Playing_row
     row_index = 4
-    sample = dataset[row_index]  # Replace 'train' with the correct split if applicable
+    sample = dataset[row_index]
 
     # Preproces the sample to graph form:
     orbitals={
@@ -312,7 +314,7 @@ def main():
         6:13,
         7:13,
         8:13,}
-    sample_graph=graph_from_row(sample,orbitals, cutoff=4.0)
+    sample_graph=graph_from_row(sample, orbitals, cutoff=4.0)
     print(sample_graph)
 
 
@@ -388,7 +390,7 @@ def main():
     print("predicted_h:", predicted_h.shape)
 
     # Create the 4-panel comparison plot
-    fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="matrix_comparison.html")
+    fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="./results/matrix_comparison.html")
 
     # Display the plot
     fig.show()

@@ -2,6 +2,7 @@ README.md
 setup.py
 src/hforge/__init__.py
 src/hforge/data_preproces.py
+src/hforge/edge_agregator.py
 src/hforge/graph_dataset.py
 src/hforge/model_shell.py
 src/hforge/neighbours.py
@@ -13,6 +14,8 @@ src/hforge.egg-info/dependency_links.txt
 src/hforge.egg-info/entry_points.txt
 src/hforge.egg-info/requires.txt
 src/hforge.egg-info/top_level.txt
+src/hforge/edge_extraction/__init__.py
+src/hforge/edge_extraction/edge_extraction_basic.py
 src/hforge/mace/__init__.py
 src/hforge/mace/__version__.py
 src/hforge/mace/py.typed
@@ -70,3 +73,5 @@ src/hforge/mace/tools/torch_geometric/dataloader.py
 src/hforge/mace/tools/torch_geometric/dataset.py
 src/hforge/mace/tools/torch_geometric/seed.py
 src/hforge/mace/tools/torch_geometric/utils.py
+src/hforge/node_extraction/__init__.py
+src/hforge/node_extraction/node_extraction_basic.py

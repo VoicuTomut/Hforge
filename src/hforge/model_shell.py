@@ -27,7 +27,7 @@ def z_one_hot(z):
         torch.Tensor: A tensor containing the one-hot encodings.
     """
     # Flatten and extract unique values, sort in ascending order
-    unique_values = torch.unique(torch.tensor(z).flatten())
+    unique_values = torch.unique(z.clone().detach().flatten())
     unique_values = torch.sort(unique_values).values
 
     # Create a mapping from value to index
@@ -35,13 +35,13 @@ def z_one_hot(z):
 
     # Create the one-hot encoded tensor
     num_classes = len(unique_values)
-    indices = torch.tensor([value_to_index[val.item()] for val in torch.tensor(z).flatten()])
+    indices = torch.tensor([value_to_index[val.item()] for val in z.clone().detach().flatten()])
     one_hot = torch.nn.functional.one_hot(indices, num_classes=num_classes).to(torch.float32)
 
     return one_hot
 
 
-def compute_mace_output_shape( config):
+def compute_mace_output_shape(config):
     """
     Compute the output shape of MACE descriptor based on configuration and number of atoms.
 
@@ -116,9 +116,9 @@ class ModelShell(torch.nn.Module):
 
         # Embeddings
         embeddings=self.embedding(graph_data)
-        print("##! embeddings ##")
+        # print("##! embeddings ##")
         #pretty_print_dict(embeddings)
-        print("## embeddings !##")
+        # print("## embeddings !##")
         #/Embeddings
 
 
@@ -128,14 +128,14 @@ class ModelShell(torch.nn.Module):
             embeddings=embeddings,
 
         )
-        print("##! descriptor ##")
+        # print("##! descriptor ##")
         #pretty_print_dict(atomic_env_descriptor)
-        print("## descriptor !##")
+        # print("## descriptor !##")
         # /interaction :
 
 
         # Edge agregator:
-        print("edge_index:", graph_data["edge_index"])
+        # print("edge_index:", graph_data["edge_index"])
         if self.edge_aggregator is not None:
             embeddings['edges']['radial_embedding'], embeddings['edges']['angular_embedding'], graph_data["reduce_edge_index"]=self.edge_aggregator(
                 edge_index=graph_data["edge_index"],
@@ -148,7 +148,7 @@ class ModelShell(torch.nn.Module):
 
 
         # Extract information:
-        print("# Extract information:")
+        # print("# Extract information:")
         model_results= {"edge_index":graph_data["edge_index"]}
         if self.edge_extraction is not None:
             edge_description=self.edge_extraction(graph_data,embeddings,atomic_env_descriptor )
@@ -215,7 +215,7 @@ class EmbeddingBase(torch.nn.Module):
 
             # Atomic numbers to binery encodding
             node_description=one_hot_z
-            print("one hot z shapes :",one_hot_z.shape)
+            # print("one hot z shapes :",one_hot_z.shape)
             # Atomic distances:
             vectors, lengths = get_edge_vectors_and_lengths(
                 positions=graph_data.pos,
@@ -418,7 +418,7 @@ class MACEDescriptor(torch.nn.Module):
 
 
         # Outputs
-        # TODO: here I think we can try an environment extraction some attention base mechanism between all the interactions
+        # TODO: here I think we can try an enviroment extraction some attention base mechanism between all the interactions
         node_env=node_feats_out
         descriptors = {"nodes":{ "node_env": node_env,}}
 

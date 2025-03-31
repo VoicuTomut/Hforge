@@ -1,5 +1,5 @@
 """
-example of model inferance
+Example of model inference
 """
 
 
@@ -12,7 +12,7 @@ from hforge.model_shell import ModelShell
 
 def main():
     # Load the dataset and extract a toy sample
-    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3")
+    dataset = load_from_disk("./Data/aBN_HSX/nr_atoms_3")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
     print(dataset)
@@ -31,7 +31,7 @@ def main():
         7:13,
         8:13,}
     sample_graph=graph_from_row(sample,orbitals, cutoff=3.0)
-    print(sample_graph)
+    # print(sample_graph)
 
 
     # Initialize model
@@ -89,7 +89,7 @@ def main():
     for key in output_graph.keys():
         print(f"{key}: {output_graph[key].shape}")
     print("__________")
-    print(sample_graph)
+    # print(sample_graph)
 
 
 

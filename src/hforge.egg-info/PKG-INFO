@@ -1,4 +1,4 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.2
 Name: hforge
 Version: 0.1
 Requires-Dist: ase==3.23.0
@@ -13,4 +13,5 @@ Requires-Dist: e3nn
 Requires-Dist: torch_ema
 Requires-Dist: torchmetrics
 Requires-Dist: h5py
+Requires-Dist: plotly
 Dynamic: requires-dist

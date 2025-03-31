@@ -42,7 +42,7 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
     on_sites = []
     hop = []
     for a, a_z in enumerate(elements_z):
-        print(a_z)
+        # print(a_z)
         for b, b_z in enumerate(elements_z):
             if a == b:
                 # We are ona  diagonal block
@@ -50,9 +50,9 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
                 on_sites.append(matrix_block)
             elif a != b:
                 # We need to check if th edge exists
-                print("edge:", [a, b])
+                # print("edge:", [a, b])
                 edge_exists = find_edge([a, b], proces_edges)
-                print(f"edge:{[a, b]} ,{edge_exists=}")
+                # print(f"edge:{[a, b]} ,{edge_exists=}")
                 if edge_exists:
                     matrix_block = system_mat[i:i + orbitals[a_z], j:j + orbitals[b_z]]
                     hop.append(matrix_block)
@@ -60,6 +60,6 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
         i += orbitals[a_z]
         j = 0
 
-    print(f"{on_sites=},\n {hop=}")
-    print(f"{len(on_sites)=},\n {len(hop)=}")
+    # print(f"{on_sites=},\n {hop=}")
+    # print(f"{len(on_sites)=},\n {len(hop)=}")
     return on_sites, hop

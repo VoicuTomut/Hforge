@@ -55,9 +55,9 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
                 on_sites.append(matrix_block)
             elif a != b:
                 # We need to check if th edge exists
-                print("edge:", [a, b])
+                # print("edge:", [a, b])
                 edge_exists = find_edge([a, b], proces_edges)
-                print(f"edge:{[a, b]} ,{edge_exists=}")
+                # print(f"edge:{[a, b]} ,{edge_exists=}")
                 if edge_exists:
                     matrix_block = system_mat[i:i + orbitals[a_z], j:j + orbitals[b_z]]
                     hop.append(matrix_block)
@@ -93,7 +93,7 @@ def main():
     cell = cell,
     true_self_interaction=False)
 
-    print(f"{edge_index=},\n {shifts=},\n {unit_shifts=},\n {cell=}")
+    # print(f"{edge_index=},\n {shifts=},\n {unit_shifts=},\n {cell=}")
 
     # Now we finally have al the information required for building a graph
     # One extra detail that we need to se up the nr of atom tipes that our mode will handle and the orbitals:
@@ -111,11 +111,11 @@ def main():
         8:13,}
     # For etch edge is time now to extract the describing block save for the onsites for both H and S matrix
     proces_edges=preprocess_edges(edge_index)
-    print("h matrix:", row['h_matrix'])
+    # print("h matrix:", row['h_matrix'])
     hm=np.array(row['h_matrix'])
-    print("h matrix.shape:", hm.shape)
+    # print("h matrix.shape:", hm.shape)
     sm = np.array(row['h_matrix'])
-    print("s matrix.shape:", sm.shape)
+    # print("s matrix.shape:", sm.shape)
 
     h_on_sites, h_hop = decompose_matrix(system_mat=hm,
                                          orbitals=orbitals,

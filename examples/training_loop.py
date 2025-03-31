@@ -477,7 +477,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 2
+    num_epochs = 200
     save_path = os.path.abspath("./results/best_model.pt")
 
     model, history = trainer.train(num_epochs, save_path)

@@ -126,7 +126,6 @@ class ModelShell(torch.nn.Module):
         atomic_env_descriptor=self.atomic_descriptors(
             graph_data=graph_data,
             embeddings=embeddings,
-
         )
         # print("##! descriptor ##")
         #pretty_print_dict(atomic_env_descriptor)
@@ -240,7 +239,7 @@ class EmbeddingBase(torch.nn.Module):
 
                 },
                 "edges":{
-                    "radial_embedding":radial_embedding, #atomic numbers here is abit of uncertenty
+                    "radial_embedding":radial_embedding, #atomic numbers here is a bit of uncertenty
                     "angular_embedding":angular_embedding,
                 }
             }

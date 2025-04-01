@@ -26,6 +26,42 @@ from hforge.graph_dataset import graph_from_row
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
 
+def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
+    """
+    Load the best model checkpoint from the saved file
+
+    Args:
+        model: Model instance to load the weights into
+        optimizer: Optional optimizer to load state (for continued training)
+        path: Path to the saved model checkpoint
+        device: Device to load the model to ('cpu' or 'cuda')
+
+    Returns:
+        model: Model with loaded weights
+        optimizer: Optimizer with loaded state (if provided)
+        epoch: The epoch at which the model was saved
+        history: Training history dictionary
+    """
+    if not os.path.exists(path):
+        print(f"No saved model found at {path}")
+        return model, optimizer, 0, {}
+
+    checkpoint = torch.load(path, map_location=device)
+
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model = model.to(device)
+
+    epoch = checkpoint['epoch']
+    history = checkpoint.get('history', {})
+
+    if optimizer is not None and 'optimizer_state_dict' in checkpoint:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    print(f"Model loaded from {path} (saved at epoch {epoch + 1})")
+    print(f"Validation loss: {checkpoint['val_loss']:.4f}")
+
+    return model, optimizer, epoch, history
+
 
 def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutoff=4.0, max_samples=None):
     """
@@ -57,20 +93,49 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         if max_samples is not None and sample_count >= max_samples:
             break
 
-    print("graph generation done!")
+    print("Graph generation done!")
+
+    # Custom collate function to ensure proper ordering of h and s matrices
+    def custom_collate(batch):
+        from torch_geometric.data import Batch
+        batch = Batch.from_data_list(batch)
+
+        # Ensure h and s matrices are properly aligned
+        # This depends on your specific data structure, but might look like:
+        # Reorganize h_on_sites and s_on_sites if needed
+        # Reorganize h_hop and s_hop if needed
+
+        return batch
 
     # Split into train and validation
     split_idx = int(len(graph_dataset) * split_ratio)
     train_dataset = graph_dataset[:split_idx]
     val_dataset = graph_dataset[split_idx:]
 
-    # Create data loaders with pin_memory for faster GPU transfer
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
+    # Create data loaders with custom collate function
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        pin_memory=True,
+        collate_fn=custom_collate
+    )
+
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        pin_memory=True,
+        collate_fn=custom_collate
+    )
 
     print(f"Created {len(train_dataset)} training samples and {len(val_dataset)} validation samples")
-    return train_loader, val_loader
+    print("Training batch example:")
+    for batch in train_loader:
+        print(batch)
+        break
 
+    return train_loader, val_loader
 
 def cost_function(pred_graph, target_graph, scale_factor=100.0):
     """
@@ -168,6 +233,8 @@ class Trainer:
             self.optimizer.zero_grad()
 
             # Forward pass
+            print("training batch:", batch)
+            print("batch X:", batch.x)
             pred_graph = self.model(batch)
 
             # Create target graph
@@ -522,13 +589,14 @@ def main():
         dataset_path=dataset_path,
         orbitals=orbitals,
         split_ratio=0.85,  # Slight increase in training data
-        batch_size=8,      # Increased batch size for better gradient estimates
+        batch_size=4,      # Increased batch size for better gradient estimates
         cutoff=3.0,
         max_samples=None   # Use full dataset for better training
     )
 
     # Initialize model
     avg_num_neighbors = 8
+    nr_bits = 10
     config_model = {
         "embedding": {
 
@@ -540,8 +608,10 @@ def main():
             "num_polynomial_cutoff": 6,
             "radial_type": "bessel",
             "distance_transform": None,
-            "max_ell": 2,
-            "num_elements": 2,
+            "max_ell": 3,
+            "num_elements": nr_bits,
+            "orbitals": orbitals,
+            "nr_bits": nr_bits
 
         },
         "atomic_descriptors": {
@@ -551,29 +621,30 @@ def main():
             "interaction_cls": RealAgnosticResidualInteractionBlock,
             'avg_num_neighbors': avg_num_neighbors,  # need to be computed
             "radial_mlp": [64, 64, 64],
-            'num_interactions': 3,
-            "correlation": 4,  # correlation order of the messages (body order - 1)
-            "num_elements": 2,
-            "max_ell": 2,
+            'num_interactions': 2,
+            "correlation": 3,  # correlation order of the messages (body order - 1)
+            "num_elements": nr_bits,
+            "max_ell": 3,
         },
 
         "edge_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 800,
-            "hidden_dim_matrix_extraction": 800,
+            "hidden_dim_message_passing": 900,
+            "hidden_dim_matrix_extraction": 900,
 
         },
 
         "node_extraction": {
             "orbitals": orbitals,
-            "hidden_dim_message_passing": 800,
-            "hidden_dim_matrix_extraction": 800,
+            "hidden_dim_message_passing": 900,
+            "hidden_dim_matrix_extraction": 900,
 
         },
 
     }
 
     model = ModelShell(config_model)
+    #model, _, _, _ = load_best_model(model, path="best_model.pt", device=device)
 
     # Define optimizer with weight decay for regularization
     optimizer = optim.AdamW(
@@ -607,7 +678,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 2000
+    num_epochs = 4000
     save_path = "best_model.pt"
 
     model, history = trainer.train(num_epochs, save_path)

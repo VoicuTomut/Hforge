@@ -14,6 +14,7 @@ from hforge.mace.modules.utils import get_edge_vectors_and_lengths
 from hforge.edge_agregator import EdgeAggregator
 from hforge.edge_extraction import EdgeExtractionBasic
 from hforge.node_extraction import NodeExtractionBasic
+import time
 
 def z_one_hot(z):
 
@@ -113,7 +114,6 @@ class ModelShell(torch.nn.Module):
 
 
     def forward(self, graph_data):
-
         # Embeddings
         embeddings=self.embedding(graph_data)
         # print("##! embeddings ##")
@@ -204,28 +204,20 @@ class EmbeddingBase(torch.nn.Module):
 
 
     def forward(self, graph_data):
-
-            # Embeddings
-           # print("graph_data passed to embedding:", graph_data)
-
-            one_hot_z=z_one_hot(graph_data.x)
-
-
+            device = graph_data.x.device
+            one_hot_z=z_one_hot(graph_data.x).to(device)
 
             # Atomic numbers to binery encodding
             node_description=one_hot_z
-            # print("one hot z shapes :",one_hot_z.shape)
+
             # Atomic distances:
             vectors, lengths = get_edge_vectors_and_lengths(
                 positions=graph_data.pos,
                 edge_index=graph_data.edge_index,
                 shifts=graph_data.shifts,
             )
-            #print("ss shape",self.node_embedding(node_description).shape)
 
-            #print(" shell node atr sapes :", node_description.shape)
             node_feats=self.node_embedding(node_description)
-            #print("node_feats:", node_feats.shape)
             radial_embedding=self.radial_embedding( lengths,
                                                               node_description,
                                                               graph_data.edge_index,

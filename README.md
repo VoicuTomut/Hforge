@@ -8,6 +8,10 @@ Set up the environment:
 ```bash
 pip install -e .
 ```
+If you need cuda support, then you have to install torch separatelly. Overwriting previous installation is OK, you just have to run the appropiate code according to the [PyTorch documentation | PyTorch](https://pytorch.org/get-started/locally/) after the previous command. For example:
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+```
 
 ## Examples
 
@@ -48,9 +52,11 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 
 ## Todo
 
-- [ ] Check if shifts are used inside the MACE implementation (Angel) and add if needed (Andrei)
+- [ ] CHECK CUDA DEVICES
+- [ ] Improve package importing time
+- [x] Check if shifts are used inside the MACE implementation (Angel) and add if needed (Andrei)
 - [ ] Improve the comments throughout the code (Angel)
-- [ ] Save the output of the example in a directory call EXAPLE_info and add it to gitignore (issue+branch*push) (Angel)
+- [x] Save the output of the example in a directory call EXAPLE_info and add it to gitignore (issue+branch*push) (Angel)
 - [ ] Tune the hyperparameters and see how it affects the results (Angel)
 - [ ] Try to fix the batching problem when training with different numbers of atoms, limit to 32 (Angel/Andrei)
 - [ ] Benchmark with other H generating codes (Ange) (maybe around middle of april)
@@ -100,5 +106,7 @@ This project provides tools and models for extracting quantum mechanical matrix 
     │   ├── to_compare_model_inference.py
     │   └── training_loop.py
     ├── Data/                         # Data directory
+    │   └── ...
+    ├── EXAMPLE_info/                 # Results of the examples directory
     │   └── ...
     └── .gitignore

@@ -1,13 +1,12 @@
 """
 Training model with Comet.ml tracking and Matplotlib live plotting (no IPython dependency)
 """
-
+import time
 import torch
 import torch.optim as optim
 from torch_geometric.loader import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
-import time
 import os
 
 # Try to import comet_ml, but make it optional
@@ -23,6 +22,25 @@ from hforge.graph_dataset import graph_from_row
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
 
+# def to_device(data, device):
+#     """
+#     Recursively moves all tensors in a data structure to the specified device.
+#     Args:
+#         data: The data structure (e.g., tensor, list, dict) to move to the device.
+#         device: The target device (e.g., 'cuda' or 'cpu').
+#     Returns:
+#         The data structure with all tensors moved to the specified device.
+#     """
+#     if isinstance(data, torch.Tensor):
+#         return data.to(device)
+#     elif isinstance(data, dict):
+#         return {key: to_device(value, device) for key, value in data.items()}
+#     elif isinstance(data, list):
+#         return [to_device(item, device) for item in data]
+#     elif isinstance(data, tuple):
+#         return tuple(to_device(item, device) for item in data)
+#     else:
+#         return data  # Non-tensor data remains unchanged
 
 def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutoff=4.0, max_samples=None):
     """
@@ -102,7 +120,7 @@ def cost_function(pred_graph, target_graph):
 class Trainer:
     def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
                  use_comet=False, live_plot=True, plot_update_freq=1, plot_path=os.path.abspath("./EXAPLE_info/training_plot.png")):
-        self.model = model.to(device)
+        self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.loss_fn = loss_fn
@@ -399,6 +417,8 @@ def main():
     # Configuration
     dataset_path = "./Data/aBN_HSX/nr_atoms_32"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cpu' #! Idk why but with GPU is ~20 seconds slower than CPU per epoch
+    print(f"Using device: {device}.")
 
     # Define orbital configuration based on atomic types
     orbitals = {
@@ -458,7 +478,7 @@ def main():
         },
     }
 
-    model = ModelShell(config_model)
+    model = ModelShell(config_model).to(device)
 
     # Define optimizer and learning rate
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -477,7 +497,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 3
+    num_epochs = 2000
     save_path = os.path.abspath("./EXAPLE_info/best_model.pt")
 
     model, history = trainer.train(num_epochs, save_path)

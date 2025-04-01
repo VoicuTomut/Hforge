@@ -63,3 +63,23 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
     # print(f"{on_sites=},\n {hop=}")
     # print(f"{len(on_sites)=},\n {len(hop)=}")
     return on_sites, hop
+
+def to_device(data, device):
+    """
+    Recursively moves all tensors in a data structure to the specified device.
+    Args:
+        data: The data structure (e.g., tensor, list, dict) to move to the device.
+        device: The target device (e.g., 'cuda' or 'cpu').
+    Returns:
+        The data structure with all tensors moved to the specified device.
+    """
+    if isinstance(data, torch.Tensor):
+        return data.to(device)
+    elif isinstance(data, dict):
+        return {key: to_device(value, device) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [to_device(item, device) for item in data]
+    elif isinstance(data, tuple):
+        return tuple(to_device(item, device) for item in data)
+    else:
+        return data  # Non-tensor data remains unchanged

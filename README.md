@@ -12,6 +12,7 @@ If you need cuda support, then you have to install torch separatelly. Overwritin
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
+HOWEVER CUDA IS NOT WORKING YET
 
 ## Examples
 
@@ -52,8 +53,8 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 
 ## Todo
 
-- [ ] CHECK CUDA DEVICES
-- [ ] Improve package importing time
+- [ ] WHY IS THE TRAINING SLOWER WITH CUDA
+- [ ] Improve package importing time PLEASE
 - [x] Check if shifts are used inside the MACE implementation (Angel) and add if needed (Andrei)
 - [ ] Improve the comments throughout the code (Angel)
 - [x] Save the output of the example in a directory call EXAPLE_info and add it to gitignore (issue+branch*push) (Angel)

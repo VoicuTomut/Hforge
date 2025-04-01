@@ -101,7 +101,7 @@ def cost_function(pred_graph, target_graph):
 ## TRAINER ##
 class Trainer:
     def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
-                 use_comet=False, live_plot=True, plot_update_freq=1, plot_path=os.path.abspath("./results/training_plot.png")):
+                 use_comet=False, live_plot=True, plot_update_freq=1, plot_path=os.path.abspath("./EXAPLE_info/training_plot.png")):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -348,8 +348,8 @@ class Trainer:
             # Create final detailed plots
             self.create_final_plots(history)
 
-            if self.use_comet and os.path.exists("training_history.png"):
-                self.experiment.log_image("training_history.png", name="training_curves")
+            if self.use_comet and os.path.exists("./EXAPLE_info/training_history.png"):
+                self.experiment.log_image("./EXAPLE_info/training_history.png", name="training_curves")
 
         # End experiment
         if self.use_comet:
@@ -391,7 +391,7 @@ class Trainer:
         plt.grid(True)
 
         plt.tight_layout()
-        plt.savefig('training_history.png')
+        plt.savefig('./EXAPLE_info/training_history.png')
         plt.close()
 
 
@@ -477,8 +477,8 @@ def main():
     )
 
     # Train the model
-    num_epochs = 200
-    save_path = os.path.abspath("./results/best_model.pt")
+    num_epochs = 3
+    save_path = os.path.abspath("./EXAPLE_info/best_model.pt")
 
     model, history = trainer.train(num_epochs, save_path)
 

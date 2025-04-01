@@ -256,7 +256,7 @@ def reconstruct_matrix(hop, onsite, reduce_edge_index):
 
     return full_matrix
 
-def load_best_model(model, optimizer=None, path="./results/best_model.pt", device='cpu'):
+def load_best_model(model, optimizer=None, path="./EXAPLE_info/best_model.pt", device='cpu'):
     """
     Load the best model checkpoint from the saved file
 
@@ -390,7 +390,7 @@ def main():
     print("predicted_h:", predicted_h.shape)
 
     # Create the 4-panel comparison plot
-    fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="./results/matrix_comparison.html")
+    fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="./EXAPLE_info/matrix_comparison.html")
 
     # Display the plot
     fig.show()

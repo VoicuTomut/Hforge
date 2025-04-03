@@ -1,5 +1,21 @@
 Data
 .venv
+
+# Ignore checkpoints
+checkpoints
+# Ignore psych folder or file
+psych
+# Ignore all .pyc files
+*.pyc
+# Ignore __pycache__ directories (where .pyc files are stored)
+__pycache__/
+# Ignore all .pt files (PyTorch model files)
+*.pt
+# Ignore .pyc files (Python bytecode files)
+*.pyc
+#Ignore .idea folder (PyCharm project files)
 .idea
+# Ignore results of the example codes but preserve folder
 EXAMPLE_info/*
+# This is for Angel.
 EXAMPLE_info_important

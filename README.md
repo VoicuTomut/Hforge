@@ -59,7 +59,7 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 - [ ] Improve the comments throughout the code (Angel)
 - [x] Save the output of the example in a directory call EXAMPLE_info and add it to gitignore (issue+branch*push) (Angel)
 - [ ] Tune the hyperparameters and see how it affects the results (Angel)
-- [ ] Try to fix the batching problem when training with different numbers of atoms, limit to 32 (Angel/Andrei)
+- [X] Try to fix the batching problem when training with different numbers of atoms, limit to 32 (Andrei)
 - [ ] Benchmark with other H generating codes (Ange) (maybe around middle of april)
 - [ ] Investigate if training on 32 atoms can generalize to 64 atoms (similar to 8→32 generalization) ?
 - [ ] Try other PyTorch graph layers to se improve performance ?

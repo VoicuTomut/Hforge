@@ -56,8 +56,8 @@ def main():
             "interaction_cls": RealAgnosticResidualInteractionBlock,
             'avg_num_neighbors':avg_num_neighbors , # need to be computed
             "radial_mlp" : [64, 64, 64],
-            'num_interactions': 2,
-            "correlation":3, # correlation order of the messages (body order - 1)
+            'num_interactions': 4,
+            "correlation":4, # correlation order of the messages (body order - 1)
             "num_elements":2,
             "max_ell":2,
         },

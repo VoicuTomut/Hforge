@@ -183,7 +183,7 @@ def main():
 
 
         # Create the 4-panel comparison plot
-        fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="matrix_comparison_New_{i}.html")
+        fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="./EXAMPLE_info/matrix_comparison_New_{i}.html")
 
         # Display the plot
         fig.show()

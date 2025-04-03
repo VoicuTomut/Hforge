@@ -770,7 +770,7 @@ def main():
         predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
                                          output_graph["edge_index"])
         original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
-        fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path="matrix_comparison_New_train.html")
+        fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path="./EXAMPLE_info/matrix_comparison_New_train.html")
 
         # Display the plot
         fig.show()
@@ -804,7 +804,7 @@ def main():
         predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
                                          output_graph["edge_index"])
         original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
-        fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path="matrix_comparison_New_val.html")
+        fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path="./EXAMPLE_info/matrix_comparison_New_val.html")
 
         # Display the plot
         fig.show()

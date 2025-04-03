@@ -666,6 +666,7 @@ def main():
             "correlation": 3,  # correlation order of the messages (body order - 1)
             "num_elements": nr_bits,
             "max_ell": 3,
+            "orbitals": orbitals,
         },
 
         "edge_extraction": {

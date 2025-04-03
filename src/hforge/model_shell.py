@@ -14,32 +14,7 @@ from hforge.mace.modules.utils import get_edge_vectors_and_lengths
 from hforge.edge_agregator import EdgeAggregator
 from hforge.edge_extraction import EdgeExtractionBasic
 from hforge.node_extraction import NodeExtractionBasic
-
-def z_one_hot(z):
-
-    """
-    Generate one-hot encodings from a list of single-value tensors.
-
-    Args:
-        z (list of torch.Tensor): A list of single-value tensors, e.g., [[2], [3], [4], [2], [2], ...].
-
-    Returns:
-        torch.Tensor: A tensor containing the one-hot encodings.
-    """
-    # Flatten and extract unique values, sort in ascending order
-    unique_values = torch.unique(torch.tensor(z).flatten())
-    unique_values = torch.sort(unique_values).values
-
-    # Create a mapping from value to index
-    value_to_index = {value.item(): idx for idx, value in enumerate(unique_values)}
-
-    # Create the one-hot encoded tensor
-    num_classes = len(unique_values)
-    indices = torch.tensor([value_to_index[val.item()] for val in torch.tensor(z).flatten()])
-    one_hot = torch.nn.functional.one_hot(indices, num_classes=num_classes).to(torch.float32)
-
-    return one_hot
-
+from hforge.one_hot import z_one_hot
 
 def compute_mace_output_shape( config):
     """
@@ -108,6 +83,10 @@ class ModelShell(torch.nn.Module):
         self.edge_extraction=EdgeExtractionBasic(
             config_routine["edge_extraction"]
         )
+        config_routine["node_extraction"]["edge_radial_dim"] = config_routine["atomic_descriptors"][
+            "radial_embedding.out_dim"]
+        config_routine["edge_extraction"]["edge_angular_dim"] = config_routine["atomic_descriptors"][
+            "angular_embedding.out_dim"]
         self.node_extraction = NodeExtractionBasic(config_routine["node_extraction"])
         self.global_extraction=None
 
@@ -202,14 +181,15 @@ class EmbeddingBase(torch.nn.Module):
         sh_irreps=o3.Irreps.spherical_harmonics(config_routine["max_ell"])
         #print(f"mace shell {sh_irreps=}")
         self.angular_embedding = o3.SphericalHarmonics(sh_irreps, normalize=True, normalization="component")
-
+        self.orbitals=config_routine["orbitals"]
+        self.nr_bit=config_routine["nr_bits"]
 
     def forward(self, graph_data):
 
             # Embeddings
            # print("graph_data passed to embedding:", graph_data)
 
-            one_hot_z=z_one_hot(graph_data.x)
+            one_hot_z=z_one_hot(graph_data.x, orbitals=self.orbitals, nr_bits=self.nr_bit)
 
 
 

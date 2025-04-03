@@ -85,8 +85,9 @@ class ModelShell(torch.nn.Module):
         )
         config_routine["node_extraction"]["edge_radial_dim"] = config_routine["atomic_descriptors"][
             "radial_embedding.out_dim"]
-        config_routine["edge_extraction"]["edge_angular_dim"] = config_routine["atomic_descriptors"][
+        config_routine["node_extraction"]["edge_angular_dim"] = config_routine["atomic_descriptors"][
             "angular_embedding.out_dim"]
+        config_routine["node_extraction"]["descriptor_dim"] = features
         self.node_extraction = NodeExtractionBasic(config_routine["node_extraction"])
         self.global_extraction=None
 

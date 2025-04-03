@@ -709,7 +709,7 @@ def main():
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
-        loss_fn=cost_function,
+        loss_fn=_cost_function,
         optimizer=optimizer,
         device=device,
         lr_scheduler=scheduler,
@@ -720,7 +720,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 10
+    num_epochs = 1000
     save_path = "best_model_b.pt"
 
     model, history = trainer.train(num_epochs, save_path)

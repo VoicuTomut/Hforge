@@ -51,6 +51,9 @@ class MessagePassing(nn.Module):
 
         # Combined edge dimension
         edge_combined_dim = edge_radial_dim + edge_angular_dim
+        #print("edge_combined_dim", edge_combined_dim)
+        #print("--edge_radial_dim", edge_radial_dim)
+        #print("--edge_angular_dim", edge_angular_dim)
 
         # Node update networks
         self.node_update = nn.Sequential(
@@ -80,6 +83,8 @@ class MessagePassing(nn.Module):
         num_edges = edge_index.size(1)
 
         # Combine edge features
+        #print("real radial",edge_radial.shape )
+        #print("real angular",edge_angular.shape )
         edge_features = torch.cat([edge_radial, edge_angular], dim=-1)
 
         # Get source and target node indices for each edge
@@ -91,6 +96,10 @@ class MessagePassing(nn.Module):
 
         # Concatenate source, destination, and edge features
         edge_inputs = torch.cat([src_features, dst_features, edge_features], dim=-1)
+        #print("src_features:", src_features.shape)
+        #print("dst_features:", dst_features.shape)
+        #print("edge_features:", edge_features.shape)
+        #print("edge_inputs:", edge_inputs.shape)
 
         # Update edge features
         edge_features_updated = self.edge_update(edge_inputs) + edge_features  # Residual connection
@@ -134,6 +143,7 @@ class MessagePassing(nn.Module):
 class NodeExtractionBasic(nn.Module):
     def __init__(self, config_routine):
         super(NodeExtractionBasic, self).__init__()
+       # print("NodeExtractionBasic config_routine:", config_routine)
 
         # Get the orbital information
         self.orbitals = config_routine["orbitals"]
@@ -142,12 +152,18 @@ class NodeExtractionBasic(nn.Module):
         self.atom_types = list(self.orbitals.keys())
 
         # Determine input dimension from the atomic environment descriptor
-        self.input_dim = config_routine.get("descriptor_dim", 64)
+        self.input_dim = config_routine.get("descriptor_dim")
+       # print("input_dim", self.input_dim)
+        self.num_orbitals_i = len(self.atom_types)
 
         # Get edge embedding dimensions for message passing
-        self.edge_radial_dim = config_routine.get("edge_radial_dim", 8)
-        self.edge_angular_dim = config_routine.get("edge_angular_dim", 9)
+        self.edge_radial_dim = config_routine.get("edge_radial_dim")
+        self.edge_angular_dim = config_routine.get("edge_angular_dim")
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
+        #print("edge_radial_dim", self.edge_radial_dim)
+        #print("edge_angular_dim", self.edge_angular_dim)
+        #print("edge_combined_dim", self.edge_combined_dim)
+
 
         # Initialize the message passing layer to update node features
         self.message_passing = MessagePassing(
@@ -182,11 +198,13 @@ class NodeExtractionBasic(nn.Module):
 
         # Extract node features from the environment descriptor
         node_features = atomic_env_descriptor['nodes']['node_env']
-
+        #print("node_features", node_features.shape)
 
         # Extract edge features from embeddings for message passing
         edge_radial = embeddings['edges']['radial_embedding']
+       # print("edge_radial", edge_radial.shape)
         edge_angular = embeddings['edges']['angular_embedding']
+       # print("edge_angular", edge_angular.shape)
 
         # Get edge connectivity
         edge_index = graph_data["reduce_edge_index"]

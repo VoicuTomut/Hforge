@@ -25,6 +25,7 @@ from datasets import load_from_disk
 from hforge.graph_dataset import graph_from_row
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
+from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix
 
 def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
     """
@@ -137,7 +138,7 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
 
     return train_loader, val_loader
 
-def cost_function(pred_graph, target_graph, scale_factor=100.0):
+def _cost_function(pred_graph, target_graph, scale_factor=100.0):
     """
     Calculate loss between predicted and target Hamiltonian and overlap matrices with dynamic weighting.
 
@@ -158,6 +159,43 @@ def cost_function(pred_graph, target_graph, scale_factor=100.0):
 
     edge_loss = torch.nn.functional.mse_loss(edge_pred, edge_target)
     node_loss = torch.nn.functional.mse_loss(node_pred, node_target)
+    # Dynamic weighting based on loss magnitude
+    edge_weight = 1.0
+    node_weight = 1.0
+
+    # Combined loss
+    total_loss = edge_weight * edge_loss + node_weight * node_loss
+
+    # Detect extremely large values and clip
+    if total_loss > 1e6:
+        print(f"Unusually large loss detected: {total_loss.item()}")
+        total_loss = torch.clamp(total_loss, max=1e6)
+
+    return total_loss, {"edge_loss": edge_loss.item(), "node_loss": node_loss.item()}
+
+def cost_function(pred_graph, target_graph, scale_factor=100.0):
+    """
+    Calculate loss between predicted and target Hamiltonian and overlap matrices with dynamic weighting.
+
+    Args:
+        pred_graph: Dictionary containing predicted edge_description (h_hop) and node_description (s_on_sites)
+        target_graph: Dictionary containing target h_hop and s_on_sites values
+        scale_factor: Scale factor for target values
+
+    Returns:
+        Total loss combining Hamiltonian and overlap matrix losses
+    """
+    # Extract predictions and targets
+    edge_pred = pred_graph["edge_description"]
+    node_pred = pred_graph["node_description"]
+
+    edge_target = target_graph["edge_description"] * scale_factor
+    node_target = target_graph["node_description"] * scale_factor
+
+
+
+    edge_loss=torch.sum(torch.abs(edge_target - edge_pred) / (torch.abs(edge_target) + 0.1))
+    node_loss = torch.sum(torch.abs(node_target - node_pred) / (torch.abs(node_target) + 0.1))
     # Dynamic weighting based on loss magnitude
     edge_weight = 1.0
     node_weight = 1.0
@@ -233,15 +271,14 @@ class Trainer:
             self.optimizer.zero_grad()
 
             # Forward pass
-            print("training batch:", batch)
-            print("batch X:", batch.x)
+
             pred_graph = self.model(batch)
 
             # Create target graph
             target_graph = {
                 "edge_index": pred_graph["edge_index"],
                 "edge_description": batch.h_hop,
-                "node_description": batch.s_on_sites
+                "node_description": batch.h_on_sites
             }
 
             # Calculate loss
@@ -283,7 +320,7 @@ class Trainer:
         with torch.no_grad():
             for batch in self.val_loader:
                 batch = batch.to(self.device)
-
+                #print("TG:", batch.h_hop.shape)
                 # Forward pass
                 pred_graph = self.model(batch)
 
@@ -291,10 +328,12 @@ class Trainer:
                 target_graph = {
                     "edge_index": pred_graph["edge_index"],
                     "edge_description": batch.h_hop,
-                    "node_description": batch.s_on_sites
+                    "node_description": batch.h_on_sites
                 }
 
                 # Calculate loss
+                #print("TG:",target_graph["edge_description"].shape)
+                #print("PG:", pred_graph["edge_description"].shape)
                 loss, component_losses = self.loss_fn(pred_graph, target_graph)
 
                 total_loss += loss.item()
@@ -468,7 +507,7 @@ class Trainer:
                 }, checkpoint_path)
                 print(f"Checkpoint saved at epoch {epoch} to {checkpoint_path}")
 
-            if save_path and train_loss < self.best_train_loss and epoch % 500 == 0:
+            if save_path and train_loss < self.best_train_loss and epoch % 10 == 0:
                 self.best_train_loss = train_loss
                 torch.save({
                     'epoch': epoch,
@@ -480,7 +519,9 @@ class Trainer:
                     'history': history
                 }, "train_"+save_path)
                 tsp="train_"+save_path
-                print(f"New best model saved to {tsp} (val_loss: {train_loss:.4f})")
+
+
+                print(f"New best model saved to {tsp} (train_loss: {train_loss:.4f})")
 
                 if self.use_comet:
                     self.experiment.log_model("best_model_training", save_path)
@@ -568,7 +609,7 @@ class Trainer:
 
 def main():
     # Configuration
-    dataset_path = "/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_32"
+    dataset_path = "/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
@@ -589,7 +630,7 @@ def main():
         dataset_path=dataset_path,
         orbitals=orbitals,
         split_ratio=0.85,  # Slight increase in training data
-        batch_size=4,      # Increased batch size for better gradient estimates
+        batch_size=1,      # Increased batch size for better gradient estimates
         cutoff=3.0,
         max_samples=None   # Use full dataset for better training
     )
@@ -644,12 +685,12 @@ def main():
     }
 
     model = ModelShell(config_model)
-    #model, _, _, _ = load_best_model(model, path="best_model.pt", device=device)
+    model, _, _, _ = load_best_model(model, path="train_best_model.pt", device=device)
 
     # Define optimizer with weight decay for regularization
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=1e-4,           # Lower initial learning rate
+        lr=1e-5/2,           # Lower initial learning rate
         weight_decay=1e-5  # Light L2 regularization
     )
 
@@ -659,7 +700,7 @@ def main():
         optimizer,
         T_0=20,  # First restart cycle length
         T_mult=2,  # Increase cycle length after each restart
-        eta_min=1e-6  # Minimum learning rate
+        eta_min=1e-7/2  # Minimum learning rate
     )
 
     # Initialize trainer
@@ -678,15 +719,49 @@ def main():
     )
 
     # Train the model
-    num_epochs = 4000
-    save_path = "best_model.pt"
+    num_epochs = 10
+    save_path = "best_model_b.pt"
 
     model, history = trainer.train(num_epochs, save_path)
 
     # Test inference with trained model
     model.eval()
 
-    # Get a sample from validation set
+    # Get a sample from trsin set
+    sample_graph = next(iter(train_loader))
+    if isinstance(sample_graph, list):
+        sample_graph = sample_graph[0]
+
+    sample_graph = sample_graph.to(device)
+
+    # Forward pass
+    with torch.no_grad():
+        output_graph = model(sample_graph)
+
+        # Create target graph for comparison
+        target_graph = {
+            "edge_index": output_graph["edge_index"],
+            "edge_description": sample_graph.h_hop,
+            "node_description": sample_graph.s_on_sites
+        }
+
+        # Calculate final inference loss
+        inference_loss, component_losses = cost_function(output_graph, target_graph)
+
+        print("\nFinal inference results:")
+        print(f"Total loss: {inference_loss.item():.4f}")
+        print(f"Edge loss: {component_losses['edge_loss']:.4f}")
+        print(f"Node loss: {component_losses['node_loss']:.4f}")
+
+        predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
+                                         output_graph["edge_index"])
+        original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
+        fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path="matrix_comparison_New_train.html")
+
+        # Display the plot
+        fig.show()
+
+        # Get a sample from trsin set
     sample_graph = next(iter(val_loader))
     if isinstance(sample_graph, list):
         sample_graph = sample_graph[0]
@@ -711,6 +786,14 @@ def main():
         print(f"Total loss: {inference_loss.item():.4f}")
         print(f"Edge loss: {component_losses['edge_loss']:.4f}")
         print(f"Node loss: {component_losses['node_loss']:.4f}")
+
+        predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
+                                         output_graph["edge_index"])
+        original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
+        fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path="matrix_comparison_New_val.html")
+
+        # Display the plot
+        fig.show()
 
     print("\nTraining completed successfully!")
 

@@ -47,7 +47,7 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None):
     percent_diff = np.zeros_like(original_h, dtype=float)
 
     # Calculate percentage only where original is not too small
-    np.divide(diff, np.abs(original_h), out=percent_diff, where=~mask_small)
+    np.divide(diff, np.abs(original_h)+0.1, out=percent_diff, where=~mask_small)
     percent_diff = percent_diff * 100  # Convert to percentage
 
     # For values where original is very small, set to either max or min

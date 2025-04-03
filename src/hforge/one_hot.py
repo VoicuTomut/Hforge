@@ -21,7 +21,7 @@ def z_one_hot(z, orbitals, nr_bits):
         k+=1
 
     indices = [tensor.item() for tensor in z]
-    print("indices:", indices)
+   # print("indices:", indices)
 
     # Create an empty tensor for one-hot encoding
     one_hot = torch.zeros(len(indices), nr_bits)

@@ -60,6 +60,7 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
         i += orbitals[a_z]
         j = 0
 
+
     print(f"{on_sites=},\n {hop=}")
     print(f"{len(on_sites)=},\n {len(hop)=}")
     return on_sites, hop

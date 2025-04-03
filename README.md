@@ -57,7 +57,7 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 - [ ] Improve package importing time PLEASE
 - [x] Check if shifts are used inside the MACE implementation (Angel) and add if needed (Andrei)
 - [ ] Improve the comments throughout the code (Angel)
-- [x] Save the output of the example in a directory call EXAPLE_info and add it to gitignore (issue+branch*push) (Angel)
+- [x] Save the output of the example in a directory call EXAMPLE_info and add it to gitignore (issue+branch*push) (Angel)
 - [ ] Tune the hyperparameters and see how it affects the results (Angel)
 - [ ] Try to fix the batching problem when training with different numbers of atoms, limit to 32 (Angel/Andrei)
 - [ ] Benchmark with other H generating codes (Ange) (maybe around middle of april)

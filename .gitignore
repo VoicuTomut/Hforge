@@ -1,15 +1,15 @@
 Data
 .venv
-checkpoints
 
+# Ignore checkpoints
+checkpoints
 # Ignore psych folder or file
 psych
-
 # Ignore all .pyc files
 *.pyc
-
 # Ignore __pycache__ directories (where .pyc files are stored)
 __pycache__/
-
 # Ignore all .pt files (PyTorch model files)
 *.pt
+# Ignore .pyc files (Python bytecode files)
+*.pyc

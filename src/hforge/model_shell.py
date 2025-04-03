@@ -8,7 +8,7 @@ This is used because it keeps the input to th emodel simple so the only inputs o
 
 import torch
 
-from hforge.pretty import pretty_print_dict
+
 from hforge.mace.modules.blocks import RadialEmbeddingBlock, EquivariantProductBasisBlock
 from hforge.mace.modules.utils import get_edge_vectors_and_lengths
 from hforge.edge_agregator import EdgeAggregator
@@ -96,10 +96,8 @@ class ModelShell(torch.nn.Module):
 
         # Embeddings
         embeddings=self.embedding(graph_data)
-        #print("##! embeddings ##")
-        #pretty_print_dict(embeddings)
-        #print("## embeddings !##")
-        #/Embeddings
+
+
 
 
         # interaction :
@@ -108,14 +106,10 @@ class ModelShell(torch.nn.Module):
             embeddings=embeddings,
 
         )
-        #print("##! descriptor ##")
-        #pretty_print_dict(atomic_env_descriptor)
-        #print("## descriptor !##")
-        # /interaction :
 
 
         # Edge agregator:
-        #print("edge_index:", graph_data["edge_index"])
+
         if self.edge_aggregator is not None:
             embeddings['edges']['radial_embedding'], embeddings['edges']['angular_embedding'], graph_data["reduce_edge_index"]=self.edge_aggregator(
                 edge_index=graph_data["edge_index"],
@@ -128,7 +122,7 @@ class ModelShell(torch.nn.Module):
 
 
         # Extract information:
-        #print("# Extract information:")
+
         model_results= {"edge_index":graph_data["edge_index"]}
         if self.edge_extraction is not None:
             edge_description=self.edge_extraction(graph_data,embeddings,atomic_env_descriptor )
@@ -153,17 +147,17 @@ class EmbeddingBase(torch.nn.Module):
     def __init__(self,config_routine):
         super(EmbeddingBase, self).__init__()
 
-        print("##! embeddings-config ##")
-        pretty_print_dict(config_routine)
+
+
 
 
         node_attr_irreps = o3.Irreps([(config_routine["num_elements"], (0, 1))])
-        #print(f"mace shell {node_attr_irreps=}")
+
 
         hidden_irreps=o3.Irreps(config_routine["hidden_irreps"])
         node_feats_irreps =o3.Irreps([(hidden_irreps.count(o3.Irrep(0, 1)), (0, 1))])
 
-        #print(f"mace shell {node_feats_irreps=}")
+
 
         self.node_embedding = o3.Linear(
             node_attr_irreps,
@@ -180,7 +174,7 @@ class EmbeddingBase(torch.nn.Module):
             distance_transform=config_routine["distance_transform"],
         )
         sh_irreps=o3.Irreps.spherical_harmonics(config_routine["max_ell"])
-        #print(f"mace shell {sh_irreps=}")
+
         self.angular_embedding = o3.SphericalHarmonics(sh_irreps, normalize=True, normalization="component")
         self.orbitals=config_routine["orbitals"]
         self.nr_bit=config_routine["nr_bits"]
@@ -188,7 +182,7 @@ class EmbeddingBase(torch.nn.Module):
     def forward(self, graph_data):
 
             # Embeddings
-           # print("graph_data passed to embedding:", graph_data)
+
 
             one_hot_z=z_one_hot(graph_data.x, orbitals=self.orbitals, nr_bits=self.nr_bit)
 
@@ -196,18 +190,16 @@ class EmbeddingBase(torch.nn.Module):
 
             # Atomic numbers to binery encodding
             node_description=one_hot_z
-            print("one hot z shapes :",one_hot_z.shape)
+
             # Atomic distances:
             vectors, lengths = get_edge_vectors_and_lengths(
                 positions=graph_data.pos,
                 edge_index=graph_data.edge_index,
                 shifts=graph_data.shifts,
             )
-            #print("ss shape",self.node_embedding(node_description).shape)
 
-            #print(" shell node atr sapes :", node_description.shape)
+
             node_feats=self.node_embedding(node_description)
-            #print("node_feats:", node_feats.shape)
             radial_embedding=self.radial_embedding( lengths,
                                                               node_description,
                                                               graph_data.edge_index,
@@ -238,8 +230,6 @@ class EmbeddingBase(torch.nn.Module):
                 }
             }
 
-            #print("embedding_collection_shapes:")
-            #print(embedding_collection_shapes)
             return embedding_collection
 
 """
@@ -304,7 +294,7 @@ class MACEDescriptor(torch.nn.Module):
             "radial_MLP": config_routine["radial_mlp"],
             "cueq_config": None,
         }
-        #print("interaction class seting:", config_dict_interact)
+
 
         self.interactions = torch.nn.ModuleList([inter])
         # Use the appropriate self connection at the first layer for proper E0
@@ -362,7 +352,7 @@ class MACEDescriptor(torch.nn.Module):
         for interaction, product in zip(
             self.interactions, self.products
         ):
-            #print("Interaction level:", k)
+
             k+=1
 
             node_feats, sc = interaction(
@@ -380,10 +370,10 @@ class MACEDescriptor(torch.nn.Module):
                # "edge_feats": embeddings["edges"]["radial_embedding"].shape,
                 #"edge_index": graph_data.edge_index,
             #}
-           # print("interaction input shape:", graph_dict)
+
 
             #o_hot=embeddings["nodes"]["one_hot"]
-            #print(f"product_inputs:{node_feats.dtype=}\n {sc.dtype=}\n {o_hot.dtype=}\n", )
+
             node_feats = product(
                 node_feats=node_feats,
                 sc=sc,
@@ -403,7 +393,6 @@ class MACEDescriptor(torch.nn.Module):
         node_env=node_feats_out
         descriptors = {"nodes":{ "node_env": node_env,}}
 
-       # print("Node descriptor:", node_env)
         return descriptors
 
 """

@@ -73,6 +73,7 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 
 ## Lifecare Todo tasks
 - [x] Implement a parameter to select if you want to begin training from a checkpoint or not
+- [x] Implement facility to resume plotting history when loading previously trained models
 
 ### Additional Tasks
 

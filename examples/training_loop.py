@@ -3,8 +3,8 @@ Training model with Comet.ml tracking and Matplotlib live plotting with optimize
 and advanced learning rate scheduling for faster convergence and lower loss
 """
 # Constants
-DATASET_PATH = "./Data/aBN_HSX/nr_atoms_8" # Path to the dataset
-PATH_TRAINED_MODEL = "./EXAMPLE_info/best_model.pt" # Set to None if you want to begin training a new model from zero.
+DATASET_PATH = "./Data/aBN_HSX/nr_atoms_3" # Path to the dataset
+PATH_TRAINED_MODEL = None#"./EXAMPLE_info/best_model.pt" # Set to None if you want to begin training a new model from zero.
 
 # Imports
 
@@ -97,7 +97,7 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         # Break if we've reached max_samples
         if max_samples is not None and sample_count >= max_samples:
             break
-    print("Graph right after conversion from row: ",  graph["edge_index"])
+    # print("Graph right after conversion from row: ",  graph["edge_index"])
 
     print("Graph generation done!")
 
@@ -165,8 +165,6 @@ def _cost_function(pred_graph, target_graph, scale_factor=100.0):
     node_target = target_graph["node_description"] * scale_factor
 
     # Compute MSE loss for both matrices
-    print("edge_pred:", edge_pred.shape)
-    print("edge_target:", edge_target.shape)
     edge_loss = torch.nn.functional.mse_loss(edge_pred, edge_target)
     node_loss = torch.nn.functional.mse_loss(node_pred, node_target)
     
@@ -226,7 +224,7 @@ def cost_function(pred_graph, target_graph, scale_factor=100.0):
 ## TRAINER ##
 class Trainer:
     def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
-                 use_comet=False, live_plot=True, plot_update_freq=1, plot_path=os.path.abspath("./EXAMPLE_info/training_plot.png"), lr_scheduler=None, grad_clip_value=1.0):
+                 use_comet=False, live_plot=True, plot_update_freq=1, plot_path=os.path.abspath("./EXAMPLE_info/training_plot_learning_rate.png"), lr_scheduler=None, grad_clip_value=1.0, history=None):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -238,6 +236,7 @@ class Trainer:
         self.plot_path = plot_path
         self.lr_scheduler = lr_scheduler
         self.grad_clip_value = grad_clip_value
+        self.history = history
 
         # Track stats for plateaus
         self.plateau_counter = 0
@@ -368,15 +367,21 @@ class Trainer:
 
         return avg_loss, {"edge_loss": avg_edge_loss, "node_loss": avg_node_loss}
 
-    def update_plot(self):
+    def update_plot_learning_rate(self):
         """Update the live plot with new loss values"""
+        start_from = 0
+
+        epochs = range(len(self.history["train_loss"]))[start_from:]
+        if len(epochs) != len(self.history["val_loss"][start_from:]):
+            raise ValueError("The length of train_loss and val_loss do not coincide.")
+
         # Create a new figure
         plt.figure(figsize=(12, 8))
 
         # Plot training and validation loss
         plt.subplot(2, 1, 1)
-        plt.plot(self.epochs, self.train_losses, 'b-', label='Training Loss')
-        plt.plot(self.epochs, self.val_losses, 'r-', label='Validation Loss')
+        plt.plot(epochs, self.history['train_loss'][start_from:], 'b-', label='Training Loss')
+        plt.plot(epochs, self.history['val_loss'][start_from:], 'r-', label='Validation Loss')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.title('Training and Validation Loss')
@@ -386,7 +391,7 @@ class Trainer:
 
         # Plot learning rate
         plt.subplot(2, 1, 2)
-        plt.plot(self.epochs, self.learning_rates, 'g-')
+        plt.plot(epochs, self.history['learning_rate'][start_from:], 'g-')
         plt.xlabel('Epoch')
         plt.ylabel('Learning Rate')
         plt.title('Learning Rate Schedule')
@@ -399,6 +404,50 @@ class Trainer:
         plt.close()
 
         print(f"Updated training plot saved to {self.plot_path}")
+
+    def update_plot(self):
+        """Create final detailed plots from history of training/validation losses"""
+        start_from = 0
+
+        epochs = range(len(self.history["train_loss"]))[start_from:]
+        if len(epochs) != len(self.history["val_loss"][start_from:]):
+            raise ValueError("The length of train_loss and val_loss do not coincide.")
+        plt.figure(figsize=(12, 8))
+
+        # Main loss plot
+        plt.subplot(2, 1, 1)
+        plt.plot(epochs, self.history['train_loss'][start_from:], 'b-', label='Training Loss')
+        plt.plot(epochs, self.history['val_loss'][start_from:], 'r-', label='Validation Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Training and Validation Loss')
+        plt.legend()
+        plt.grid(True)
+
+        # Component losses
+        plt.subplot(2, 2, 3)
+        plt.plot(epochs, self.history['train_edge_loss'][start_from:], 'b-', label='Train Edge Loss')
+        plt.plot(epochs, self.history['val_edge_loss'][start_from:], 'r-', label='Val Edge Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Edge Loss')
+        plt.title('Edge Matrix Loss')
+        plt.legend()
+        plt.grid(True)
+
+        plt.subplot(2, 2, 4)
+        plt.plot(epochs, self.history['train_node_loss'][start_from:], 'b-', label='Train Node Loss')
+        plt.plot(epochs, self.history['val_node_loss'][start_from:], 'r-', label='Val Node Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Node Loss')
+        plt.title('Node Matrix Loss')
+        plt.legend()
+        plt.grid(True)
+
+        # TODO: Add flags where each data type training begins
+
+        plt.tight_layout()
+        plt.savefig('./EXAMPLE_info/training_history.png')
+        plt.close()
 
     def check_for_plateau(self, val_loss, epoch):
         """Check if training has plateaued and adjust learning rate if needed"""
@@ -433,18 +482,21 @@ class Trainer:
         """
         folder = "./EXAMPLE_info/"
         save_path = os.path.abspath(folder+filename) if filename else None
-        history = {
-            # Total losses
-            'train_loss': [],
-            'val_loss': [],
 
-            # Component losses
-            'train_edge_loss': [],
-            'train_node_loss': [],
-            'val_edge_loss': [],
-            'val_node_loss': [],
-            'learning_rate': []
-        }
+        # Create history if the model is not pretrained
+        if self.history is None:
+            self.history = {
+                # Total losses
+                'train_loss': [],
+                'val_loss': [],
+
+                # Component losses
+                'train_edge_loss': [],
+                'train_node_loss': [],
+                'val_edge_loss': [],
+                'val_node_loss': [],
+                'learning_rate': []
+            }
 
         # Track the time of training.
         start_time = time.time()
@@ -457,24 +509,25 @@ class Trainer:
         checkpoint_dir = "checkpoints"
         os.makedirs(checkpoint_dir, exist_ok=True)
 
+        # Begin training loop
         for epoch in range(num_epochs):
             epoch_start = time.time()
 
             # Training phase
             train_loss, train_components = self.train_epoch()
-            history['train_loss'].append(train_loss)
-            history['train_edge_loss'].append(train_components["edge_loss"])
-            history['train_node_loss'].append(train_components["node_loss"])
+            self.history['train_loss'].append(train_loss)
+            self.history['train_edge_loss'].append(train_components["edge_loss"])
+            self.history['train_node_loss'].append(train_components["node_loss"])
 
             # Validation phase
             val_loss, val_components = self.validate()
-            history['val_loss'].append(val_loss)
-            history['val_edge_loss'].append(val_components["edge_loss"])
-            history['val_node_loss'].append(val_components["node_loss"])
+            self.history['val_loss'].append(val_loss)
+            self.history['val_edge_loss'].append(val_components["edge_loss"])
+            self.history['val_node_loss'].append(val_components["node_loss"])
 
             # Store current learning rate
             current_lr = self.optimizer.param_groups[0]['lr']
-            history['learning_rate'].append(current_lr)
+            self.history['learning_rate'].append(current_lr)
 
             # Update learning rate scheduler if provided
             if self.lr_scheduler is not None:
@@ -489,12 +542,15 @@ class Trainer:
             epoch_time = time.time() - epoch_start
             elapsed_time = time.time() - start_time
 
-            # Update tracking for plotting
-            if self.live_plot:
-                self.epochs.append(epoch)
-                self.train_losses.append(train_loss)
-                self.val_losses.append(val_loss)
-                self.learning_rates.append(current_lr)
+            # # Update tracking for plotting
+            # if self.live_plot:
+            #     # self.epochs.append(epoch)
+            #     # self.train_losses.append(train_loss)
+            #     # self.val_losses.append(val_loss)
+            #     # self.learning_rates.append(current_lr)
+
+            #     # Update history for live plot
+            #     self.history = LOL THIS IS ALREADY DONE
 
             # Print progress
             print(f"Epoch {epoch + 1}/{num_epochs} - "
@@ -517,6 +573,7 @@ class Trainer:
             # Update live plot
             if self.live_plot and (epoch % self.plot_update_freq == 0 or epoch == num_epochs - 1):
                 self.update_plot()
+                self.update_plot_learning_rate()
 
             # Save periodic checkpoint (every 50 epochs)
             if epoch % 50 == 0 and epoch > 0:
@@ -531,6 +588,7 @@ class Trainer:
                 }, checkpoint_path)
                 print(f"Checkpoint saved at epoch {epoch} to {checkpoint_path}")
 
+            # Save best model based on training loss
             if save_path and train_loss < self.best_train_loss and epoch % 10 == 0:
                 self.best_train_loss = train_loss
                 torch.save({
@@ -540,7 +598,7 @@ class Trainer:
                     'scheduler_state_dict': self.lr_scheduler.state_dict() if self.lr_scheduler else None,
                     'train_loss': train_loss,
                     'val_loss': val_loss,
-                    'history': history
+                    'history': self.history
                 }, folder+"train_"+filename)
                 tsp=folder+"train_"+filename
 
@@ -550,7 +608,7 @@ class Trainer:
                 if self.use_comet:
                     self.experiment.log_model("best_model_training", save_path)
 
-            # Save best model
+            # Save best model based on validation loss
             if save_path and val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
                 torch.save({
@@ -560,7 +618,7 @@ class Trainer:
                     'scheduler_state_dict': self.lr_scheduler.state_dict() if self.lr_scheduler else None,
                     'train_loss': train_loss,
                     'val_loss': val_loss,
-                    'history': history
+                    'history': self.history
                 }, save_path)
                 print(f"New best model saved to {save_path} (val_loss: {val_loss:.4f})")
 
@@ -570,7 +628,7 @@ class Trainer:
         # Final plot update
         if self.live_plot:
             self.update_plot()
-            self.create_final_plots(history)
+            # self.create_final_plots()
 
             if self.use_comet and os.path.exists("./EXAMPLE_info/training_history.png"):
                 self.experiment.log_image("./EXAMPLE_info/training_history.png", name="training_curves")
@@ -579,63 +637,63 @@ class Trainer:
         if self.use_comet:
             self.experiment.end()
 
-        return self.model, history
+        return self.model, self.history
 
-    def create_final_plots(self, history):
-        """Create final detailed plots from history"""
-        plt.figure(figsize=(15, 10))
+    # def create_final_plots(self):
+    #     """Create final detailed plots from history"""
+    #     plt.figure(figsize=(15, 10))
 
-        # Main loss plot
-        plt.subplot(2, 2, 1)
-        plt.plot(history['train_loss'], 'b-', label='Training Loss')
-        plt.plot(history['val_loss'], 'r-', label='Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.title('Training and Validation Loss')
-        plt.legend()
-        plt.grid(True)
-        plt.yscale('log')  # Log scale for better visualization of loss improvements
+    #     # Main loss plot
+    #     plt.subplot(2, 2, 1)
+    #     plt.plot(self.history['train_loss'], 'b-', label='Training Loss')
+    #     plt.plot(self.history['val_loss'], 'r-', label='Validation Loss')
+    #     plt.xlabel('Epoch')
+    #     plt.ylabel('Loss')
+    #     plt.title('Training and Validation Loss')
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.yscale('log')  # Log scale for better visualization of loss improvements
 
-        # Component losses
-        plt.subplot(2, 2, 2)
-        plt.plot(history['train_edge_loss'], 'b-', label='Train Edge Loss')
-        plt.plot(history['val_edge_loss'], 'r-', label='Val Edge Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Edge Loss')
-        plt.title('Edge Matrix Loss')
-        plt.legend()
-        plt.grid(True)
-        plt.yscale('log')
+    #     # Component losses
+    #     plt.subplot(2, 2, 2)
+    #     plt.plot(self.history['train_edge_loss'], 'b-', label='Train Edge Loss')
+    #     plt.plot(self.history['val_edge_loss'], 'r-', label='Val Edge Loss')
+    #     plt.xlabel('Epoch')
+    #     plt.ylabel('Edge Loss')
+    #     plt.title('Edge Matrix Loss')
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.yscale('log')
 
-        plt.subplot(2, 2, 3)
-        plt.plot(history['train_node_loss'], 'b-', label='Train Node Loss')
-        plt.plot(history['val_node_loss'], 'r-', label='Val Node Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Node Loss')
-        plt.title('Node Matrix Loss')
-        plt.legend()
-        plt.grid(True)
-        plt.yscale('log')
+    #     plt.subplot(2, 2, 3)
+    #     plt.plot(self.history['train_node_loss'], 'b-', label='Train Node Loss')
+    #     plt.plot(self.history['val_node_loss'], 'r-', label='Val Node Loss')
+    #     plt.xlabel('Epoch')
+    #     plt.ylabel('Node Loss')
+    #     plt.title('Node Matrix Loss')
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.yscale('log')
 
-        # Learning rate plot
-        plt.subplot(2, 2, 4)
-        plt.plot(history['learning_rate'], 'g-')
-        plt.xlabel('Epoch')
-        plt.ylabel('Learning Rate')
-        plt.title('Learning Rate Schedule')
-        plt.grid(True)
-        plt.yscale('log')
+    #     # Learning rate plot
+    #     plt.subplot(2, 2, 4)
+    #     plt.plot(self.history['learning_rate'], 'g-')
+    #     plt.xlabel('Epoch')
+    #     plt.ylabel('Learning Rate')
+    #     plt.title('Learning Rate Schedule')
+    #     plt.grid(True)
+    #     plt.yscale('log')
 
-        plt.tight_layout()
-        plt.savefig('./EXAMPLE_info/training_history.png', dpi=300)
-        plt.close()
+    #     plt.tight_layout()
+    #     plt.savefig('./EXAMPLE_info/training_history.png', dpi=300)
+    #     plt.close()
 
 
 def main():
     # Configuration
     dataset_path = DATASET_PATH
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # device = 'cpu' #! Idk why but with GPU is ~20 seconds slower than CPU per epoch
+    device = 'cpu' #! Idk why but with GPU is ~20 seconds slower than CPU per epoch
     print(f"Using device: {device}.")
 
     # Define orbital configuration based on atomic types
@@ -711,25 +769,29 @@ def main():
     }
 
     model = ModelShell(config_model).to(device)
+    print(model)
 
     # Load the model
     if PATH_TRAINED_MODEL is not None:
-        model, _, _, _ = load_best_model(model, path=PATH_TRAINED_MODEL, device=device)
+        model, _, _, history = load_best_model(model, path=PATH_TRAINED_MODEL, device=device)
+    else:
+        history = None
+        print("No pretrained model found. Starting training from scratch.")
 
     # Define optimizer with weight decay for regularization
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=1e-5,           # Lower initial learning rate
-        weight_decay=1e-5  # Light L2 regularization
-    )
-
+        lr=1e-5, # Lower initial learning rate
+        weight_decay=1e-5 # Light L2 regularization
+ )
+  
     # Learning rate scheduler with warm-up and cosine annealing
     # This helps find better minima and escape plateaus
     scheduler = CosineAnnealingWarmRestarts(
         optimizer,
-        T_0=20,  # First restart cycle length
-        T_mult=2,  # Increase cycle length after each restart
-        eta_min=1e-7  # Minimum learning rate
+        T_0=20, # First restart cycle length
+        T_mult=2, # Increase cycle length after each restart
+        eta_min=1e-7 # Minimum learning rate
     )
 
     # Initialize trainer
@@ -744,7 +806,8 @@ def main():
         use_comet=False,    # Set to True if you want to use Comet.ml
         live_plot=True,     # Generate plot files during training
         plot_update_freq=1, # Update plot every 5 epochs
-        grad_clip_value=0.1 # Tighter gradient clipping for stability
+        grad_clip_value=0.1, # Tighter gradient clipping for stability
+        history=history,
     )
 
     # Train the model

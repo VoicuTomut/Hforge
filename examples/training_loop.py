@@ -609,7 +609,7 @@ class Trainer:
 
 def main():
     # Configuration
-    dataset_path = "/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_32"
+    dataset_path = "/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
@@ -630,7 +630,7 @@ def main():
         dataset_path=dataset_path,
         orbitals=orbitals,
         split_ratio=0.85,  # Slight increase in training data
-        batch_size=1,      # Increased batch size for better gradient estimates
+        batch_size=4,      # Increased batch size for better gradient estimates
         cutoff=3.0,
         max_samples=None   # Use full dataset for better training
     )
@@ -662,7 +662,7 @@ def main():
             "interaction_cls": RealAgnosticResidualInteractionBlock,
             'avg_num_neighbors': avg_num_neighbors,  # need to be computed
             "radial_mlp": [64, 64, 64],
-            'num_interactions': 2,
+            'num_interactions': 3,
             "correlation": 3,  # correlation order of the messages (body order - 1)
             "num_elements": nr_bits,
             "max_ell": 3,
@@ -686,7 +686,7 @@ def main():
     }
 
     model = ModelShell(config_model)
-    model, _, _, _ = load_best_model(model, path="train_best_model.pt", device=device)
+    model, _, _, _ = load_best_model(model, path="train_best_model_b.pt", device=device)
 
     # Define optimizer with weight decay for regularization
     optimizer = optim.AdamW(
@@ -720,7 +720,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 1000
+    num_epochs = 2500
     save_path = "best_model_b.pt"
 
     model, history = trainer.train(num_epochs, save_path)

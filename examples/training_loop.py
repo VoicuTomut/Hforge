@@ -3,7 +3,8 @@ Training model with Comet.ml tracking and Matplotlib live plotting with optimize
 and advanced learning rate scheduling for faster convergence and lower loss
 """
 # Constants
-PATH_TRAINED_MODEL = "./EXAMPLE_info/best_model.pt" # Comment if you want to begin training a new model from zero.
+DATASET_PATH = "./Data/aBN_HSX/nr_atoms_8" # Path to the dataset
+PATH_TRAINED_MODEL = "./EXAMPLE_info/best_model.pt" # Set to None if you want to begin training a new model from zero.
 
 # Imports
 
@@ -96,6 +97,7 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         # Break if we've reached max_samples
         if max_samples is not None and sample_count >= max_samples:
             break
+    print("Graph right after conversion from row: ",  graph["edge_index"])
 
     print("Graph generation done!")
 
@@ -631,7 +633,7 @@ class Trainer:
 
 def main():
     # Configuration
-    dataset_path = "./Data/aBN_HSX/nr_atoms_8"
+    dataset_path = DATASET_PATH
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = 'cpu' #! Idk why but with GPU is ~20 seconds slower than CPU per epoch
     print(f"Using device: {device}.")

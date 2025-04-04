@@ -16,7 +16,7 @@ from hforge.edge_extraction import EdgeExtractionBasic
 from hforge.node_extraction import NodeExtractionBasic
 from hforge.one_hot import z_one_hot
 
-def compute_mace_output_shape( config):
+def compute_mace_output_shape(config):
     """
     Compute the output shape of MACE descriptor based on configuration and number of atoms.
 
@@ -93,7 +93,6 @@ class ModelShell(torch.nn.Module):
 
 
     def forward(self, graph_data):
-
         # Embeddings
         embeddings=self.embedding(graph_data)
 
@@ -104,7 +103,6 @@ class ModelShell(torch.nn.Module):
         atomic_env_descriptor=self.atomic_descriptors(
             graph_data=graph_data,
             embeddings=embeddings,
-
         )
 
 
@@ -183,8 +181,8 @@ class EmbeddingBase(torch.nn.Module):
 
             # Embeddings
 
-
-            one_hot_z=z_one_hot(graph_data.x, orbitals=self.orbitals, nr_bits=self.nr_bit)
+            device = graph_data.x.device
+            one_hot_z=z_one_hot(graph_data.x, orbitals=self.orbitals, nr_bits=self.nr_bit).to(device)
 
 
 
@@ -213,7 +211,7 @@ class EmbeddingBase(torch.nn.Module):
 
                 },
                 "edges":{
-                    "radial_embedding":radial_embedding, #atomic numbers here is abit of uncertenty
+                    "radial_embedding":radial_embedding, #atomic numbers here is a bit of uncertenty
                     "angular_embedding":angular_embedding,
                 }
             }
@@ -389,7 +387,7 @@ class MACEDescriptor(torch.nn.Module):
 
 
         # Outputs
-        # TODO: here I think we can try an environment extraction some attention base mechanism between all the interactions
+        # TODO: here I think we can try an enviroment extraction some attention base mechanism between all the interactions
         node_env=node_feats_out
         descriptors = {"nodes":{ "node_env": node_env,}}
 

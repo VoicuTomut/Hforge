@@ -19,7 +19,7 @@ from hforge.graph_dataset import create_graph, AtomicGraphDataset, graph_from_ro
 
 def main():
     # Load the dataset
-    dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3")
+    dataset = load_from_disk(r"./Data/aBN_HSX/nr_atoms_3")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
     print(dataset)
@@ -43,7 +43,7 @@ def main():
     print("Graphs:",graphs)
 
     # Dataset:
-    dataset_place="/Users/voicutomut/Documents/GitHub/Hforge/Data/AtomicGraphs"
+    dataset_place="./Data/AtomicGraphs"
     graph_dataset=AtomicGraphDataset(graphs, root=dataset_place)
     graph_dataset.process()  # Save the dataset to disk
     print("Dataset saved.")

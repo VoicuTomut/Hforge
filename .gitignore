@@ -13,3 +13,10 @@ __pycache__/
 *.pt
 # Ignore .pyc files (Python bytecode files)
 *.pyc
+#Ignore .idea folder (PyCharm project files)
+.idea
+# Ignore results of the example codes but preserve folder
+EXAMPLE_info/*
+
+# This is for Angel.
+EXAMPLE_info_important

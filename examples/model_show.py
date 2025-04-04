@@ -18,11 +18,12 @@ from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matri
 
 from training_loop import prepare_dataset
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 
 
-def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
+def load_best_model(model, optimizer=None, path="./EXAMPLE_info/best_model.pt", device='cpu'):
     """
     Load the best model checkpoint from the saved file
 
@@ -38,11 +39,12 @@ def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
         epoch: The epoch at which the model was saved
         history: Training history dictionary
     """
+    path = os.path.abspath(path)
     if not os.path.exists(path):
         print(f"No saved model found at {path}")
         return model, optimizer, 0, {}
 
-    checkpoint = torch.load(path, map_location=device)
+    checkpoint = torch.load(path, map_location=device, weights_only=False)
 
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
@@ -61,11 +63,11 @@ def load_best_model(model, optimizer=None, path="best_model.pt", device='cpu'):
 
 def main():
     # Load the dataset and extract a toy sample
-    #dataset = load_from_disk("/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3")
+    # dataset = load_from_disk("./Data/aBN_HSX/nr_atoms_3")
     # features: ['nr_atoms', 'atomic_types_z', 'atomic_positions', 'lattice_nsc', 'lattice_origin',
     #            'lattice_vectors', 'boundary_condition', 'h_matrix', 's_matrix']
 
-    dataset_path="/Users/voicutomut/Documents/GitHub/Hforge/Data/aBN_HSX/nr_atoms_3"
+    dataset_path="./Data/aBN_HSX/nr_atoms_3"
     orbitals = {
         1: 13,
         2: 13,
@@ -86,23 +88,11 @@ def main():
     )
     print(dataset)
     # Playing_row
-    dataset= list(iter(dataset))
+    dataset = list(iter(dataset))
     row_index=10
     for row_index in range(20):
 
         sample_graph = dataset[row_index]  # Replace 'train' with the correct split if applicable
-
-        # Preproces the sample to graph form:
-        orbitals={
-            1:13,
-            2:13,
-            3:13,
-            4:13,
-            5:13,
-            6:13,
-            7:13,
-            8:13,}
-        #sample_graph=graph_from_row(sample,orbitals, cutoff=4.0)
 
 
 
@@ -193,7 +183,7 @@ def main():
 
 
         # Create the 4-panel comparison plot
-        fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="matrix_comparison_New_{i}.html")
+        fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="./EXAMPLE_info/matrix_comparison_New_{i}.html")
 
         # Display the plot
         fig.show()

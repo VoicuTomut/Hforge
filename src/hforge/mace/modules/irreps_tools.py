@@ -23,8 +23,8 @@ def tp_out_irreps_with_instructions(
     irreps_out_list: List[Tuple[int, o3.Irreps]] = []
     instructions = []
 
-    print("IRREPS", irreps1, irreps2)
-    print("IRREPS type", type(irreps1),type(irreps2))
+    # print("IRREPS", irreps1, irreps2)
+    # print("IRREPS type", type(irreps1),type(irreps2))
     #irreps1=o3.Irreps(irreps1)
     for i, (mul, ir_in) in enumerate(irreps1):
         for j, (_, ir_edge) in enumerate(irreps2):

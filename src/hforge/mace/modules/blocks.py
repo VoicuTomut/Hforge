@@ -317,7 +317,7 @@ class InteractionBlock(torch.nn.Module):
             radial_MLP = [64, 64, 64]
         self.radial_MLP = radial_MLP
         self.cueq_config = cueq_config
-        print(f"node fut -1: {type(self.node_feats_irreps)=}")
+        # print(f"node fut -1: {type(self.node_feats_irreps)=}")
         self._setup()
 
     @abstractmethod
@@ -751,7 +751,7 @@ class RealAgnosticResidualInteractionBlock(InteractionBlock):
         sender = edge_index[0]
         receiver = edge_index[1]
         num_nodes = node_feats.shape[0]
-        print("node feature and atribute shapes ",node_feats.shape, node_attrs.shape )
+        # print("node feature and atribute shapes ",node_feats.shape, node_attrs.shape )
 
 
         sc = self.skip_tp(node_feats, node_attrs)

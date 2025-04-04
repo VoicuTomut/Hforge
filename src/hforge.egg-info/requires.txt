@@ -1,6 +1,5 @@
 ase==3.23.0
 numpy>=2.0.0
-torch
 torch_geometric
 jarvis-tools
 scipy
@@ -10,3 +9,4 @@ e3nn
 torch_ema
 torchmetrics
 h5py
+plotly

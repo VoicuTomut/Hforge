@@ -53,6 +53,10 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 
 ## Todo
 
+- [ ] Train the model and experiment with the lr.
+- [x] Try to download the new data
+- [ ] Visualization of the eigenvalues of the Intergral Transfer Matrix of H. Use the script of thomas.
+- [ ] Study how does the "two (or more) interaction" affect to the convergence of the training (whatever is this interaction term)
 - [ ] WHY IS THE TRAINING SLOWER WITH CUDA
 - [ ] Improve package importing time PLEASE
 - [x] Check if shifts are used inside the MACE implementation (Angel) and add if needed (Andrei)
@@ -66,6 +70,9 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 - -------------------------------------------------------- (from  21 aprilie)
 - [ ] Use E3NN for onsite and hopping extractions
 - [ ] Implement mixed training approach
+
+## Lifecare Todo tasks
+- [x] Implement a parameter to select if you want to begin training from a checkpoint or not
 
 ### Additional Tasks
 

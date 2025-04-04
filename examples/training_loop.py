@@ -2,6 +2,11 @@
 Training model with Comet.ml tracking and Matplotlib live plotting with optimized loss
 and advanced learning rate scheduling for faster convergence and lower loss
 """
+# Constants
+PATH_TRAINED_MODEL = "./EXAMPLE_info/best_model.pt" # Comment if you want to begin training a new model from zero.
+
+# Imports
+
 import time
 import torch
 import torch.optim as optim
@@ -158,6 +163,8 @@ def _cost_function(pred_graph, target_graph, scale_factor=100.0):
     node_target = target_graph["node_description"] * scale_factor
 
     # Compute MSE loss for both matrices
+    print("edge_pred:", edge_pred.shape)
+    print("edge_target:", edge_target.shape)
     edge_loss = torch.nn.functional.mse_loss(edge_pred, edge_target)
     node_loss = torch.nn.functional.mse_loss(node_pred, node_target)
     
@@ -410,18 +417,20 @@ class Trainer:
             self.plateau_counter = 0
         return False
 
-    def train(self, num_epochs, save_path=None):
+    def train(self, num_epochs, filename=None):
         """
         Train the model for specified number of epochs with learning rate scheduling
 
         Args:
             num_epochs: Number of training epochs
-            save_path: Path to save the best model (optional)
+            filename: Path to save the best model (optional)
 
         Returns:
             model: Trained model
             history (Dict): History of training/validation losses
         """
+        folder = "./EXAMPLE_info/"
+        save_path = os.path.abspath(folder+filename) if filename else None
         history = {
             # Total losses
             'train_loss': [],
@@ -530,8 +539,8 @@ class Trainer:
                     'train_loss': train_loss,
                     'val_loss': val_loss,
                     'history': history
-                }, "train_"+save_path)
-                tsp="train_"+save_path
+                }, folder+"train_"+filename)
+                tsp=folder+"train_"+filename
 
 
                 print(f"New best model saved to {tsp} (train_loss: {train_loss:.4f})")
@@ -622,9 +631,9 @@ class Trainer:
 
 def main():
     # Configuration
-    dataset_path = "./Data/aBN_HSX/nr_atoms_32"
+    dataset_path = "./Data/aBN_HSX/nr_atoms_8"
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = 'cpu' #! Idk why but with GPU is ~20 seconds slower than CPU per epoch
+    # device = 'cpu' #! Idk why but with GPU is ~20 seconds slower than CPU per epoch
     print(f"Using device: {device}.")
 
     # Define orbital configuration based on atomic types
@@ -701,6 +710,10 @@ def main():
 
     model = ModelShell(config_model).to(device)
 
+    # Load the model
+    if PATH_TRAINED_MODEL is not None:
+        model, _, _, _ = load_best_model(model, path=PATH_TRAINED_MODEL, device=device)
+
     # Define optimizer with weight decay for regularization
     optimizer = optim.AdamW(
         model.parameters(),
@@ -728,15 +741,16 @@ def main():
         lr_scheduler=scheduler,
         use_comet=False,    # Set to True if you want to use Comet.ml
         live_plot=True,     # Generate plot files during training
-        plot_update_freq=5, # Update plot every 5 epochs
+        plot_update_freq=1, # Update plot every 5 epochs
         grad_clip_value=0.1 # Tighter gradient clipping for stability
     )
 
     # Train the model
     num_epochs = 2000
-    save_path = os.path.abspath("./EXAMPLE_info/best_model.pt")
+    filename = "best_model.pt" # Name to save the file
+    # save_path = os.path.abspath("./EXAMPLE_info/best_model.pt")
 
-    model, history = trainer.train(num_epochs, save_path)
+    model, history = trainer.train(num_epochs, filename)
 
     # Test inference with trained model
     model.eval()
@@ -810,7 +824,6 @@ def main():
         fig.show()
 
     print("\nTraining completed successfully!")
-
 
 if __name__ == "__main__":
     main()

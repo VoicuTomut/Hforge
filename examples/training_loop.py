@@ -719,7 +719,7 @@ def main():
     # Define optimizer with weight decay for regularization
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=1e-5/2,           # Lower initial learning rate
+        lr=1e-5,           # Lower initial learning rate
         weight_decay=1e-5  # Light L2 regularization
     )
 
@@ -729,7 +729,7 @@ def main():
         optimizer,
         T_0=20,  # First restart cycle length
         T_mult=2,  # Increase cycle length after each restart
-        eta_min=1e-7/2  # Minimum learning rate
+        eta_min=1e-7  # Minimum learning rate
     )
 
     # Initialize trainer

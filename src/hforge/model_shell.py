@@ -119,7 +119,7 @@ class ModelShell(torch.nn.Module):
 
         # Eliminate self loops from edges:
         model_results["edge_index"] , model_results["edge_description"] = remove_self_loops(model_results["edge_index"], model_results["edge_description"])
-       
+
         return model_results
 
 

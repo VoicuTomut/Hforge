@@ -117,11 +117,33 @@ class ModelShell(torch.nn.Module):
             global_info=self.global_extraction(graph_data,embeddings,atomic_env_descriptor)
             model_results["global_info"]=global_info
 
-
+        # Eliminate self loops from edges:
+        model_results["edge_index"] , model_results["edge_description"] = remove_self_loops(model_results["edge_index"], model_results["edge_description"])
+       
         return model_results
 
 
 
+def remove_self_loops(edge_index, edge_desc):
+    """
+    Removes self-loop edges (like 0-0, 1-1) from edge_index and edge_desc.
+
+    Args:
+        edge_index (torch.Tensor): Tensor of shape [2, num_edges]
+        edge_desc (torch.Tensor): Tensor of shape [num_edges, ...]
+
+    Returns:
+        filtered_edge_index (torch.Tensor): Edge index without self-loops
+        filtered_edge_desc (torch.Tensor): Edge desc without self-loop edges
+    """
+    # Mask for non-self-loop edges
+    mask = edge_index[0] != edge_index[1]
+
+    # Apply mask
+    filtered_edge_index = edge_index[:, mask]
+    filtered_edge_desc = edge_desc[mask]
+
+    return filtered_edge_index, filtered_edge_desc
 
 
 

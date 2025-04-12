@@ -5,18 +5,12 @@ example of model inferance
 
 import torch
 import os
-import plotly.graph_objects as go
-import plotly.subplots as sp
-from plotly.subplots import make_subplots
-import numpy as np
 
-from datasets import load_from_disk
-from hforge.graph_dataset import graph_from_row
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
 from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix
 
-from training_loop import prepare_dataset
+from examples.training_loop.training_loop import prepare_dataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)

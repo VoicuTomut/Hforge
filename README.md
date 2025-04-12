@@ -25,7 +25,7 @@ HOWEVER CUDA IS NOT WORKING YET
 
 - Run a training loop:
   ```bash
-  python examples/training_loop.py
+  python examples/training_loop/training_loop.py
   ```
 
 - Test the model:

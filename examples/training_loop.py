@@ -3,8 +3,8 @@ Training model with Comet.ml tracking and Matplotlib live plotting with optimize
 and advanced learning rate scheduling for faster convergence and lower loss
 """
 # Constants
-DATASET_PATH = "./Data/aBN_HSX/nr_atoms_3" # Path to the dataset
-PATH_TRAINED_MODEL = None#"./EXAMPLE_info/best_model.pt" # Set to None if you want to begin training a new model from zero.
+DATASET_PATH = "./Data/aBN_HSX/nr_atoms_32" # Path to the dataset
+PATH_TRAINED_MODEL = "./EXAMPLE_info/train_best_model.pt" # Set to None if you want to begin training a new model from zero.
 
 # Imports
 
@@ -811,7 +811,7 @@ def main():
     )
 
     # Train the model
-    num_epochs = 2000
+    num_epochs = 4000
     filename = "best_model.pt" # Name to save the file
     # save_path = os.path.abspath("./EXAMPLE_info/best_model.pt")
 

@@ -19,4 +19,4 @@ __pycache__/
 example_results
 
 # Ignore training_loop_config.yaml file (configuration file)
-training_loop_config.yaml
+examples/training_loop/training_loop_config.yaml

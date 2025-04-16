@@ -387,8 +387,8 @@ class Trainer:
                     'train_loss': train_loss,
                     'val_loss': val_loss,
                     'history': self.history
-                }, folder +"train_ " +filename)
-                tsp =folder +"train_ " +filename
+                }, folder +"train_" +filename)
+                tsp =folder +"train_" +filename
 
 
                 print(f"New best model saved to {tsp} (train_loss: {train_loss:.4f})")

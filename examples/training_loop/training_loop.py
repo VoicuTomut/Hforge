@@ -43,7 +43,7 @@ INTERACTIN_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInt
 def main():
 
     # === Load configuration ===
-    with open("examples/training_loop/training_loop_cinfig.yaml", "r") as f:
+    with open("examples/training_loop/training_loop_config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
     exp_path=config["exp_path"]
@@ -51,7 +51,7 @@ def main():
     save_to_yaml(config, f"{exp_path}/training_config.yaml")
 
     # === Device setup ===
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if (torch.cuda.is_available() and config["device"]!="cpu") else 'cpu')
     print(f"Using device: {device}")
 
     # === Dataset Preparation ===
@@ -74,7 +74,7 @@ def main():
     model_config["atomic_descriptors"]["interaction_cls"] = INTERACTIN_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
 
     model = ModelShell(model_config).to(device)
-    print("\n Model:\n",model)
+    # print("\n Model:\n",model)
 
     # === Model loading ===
     path_trained_model = model_config["path_trained_model"]

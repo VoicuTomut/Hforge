@@ -23,6 +23,24 @@ except ImportError:
 class Trainer:
     def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
                  use_comet=False, live_plot=True, plot_update_freq=1,training_info_path="", lr_scheduler=None, grad_clip_value=1.0, history=None):
+        """Initialize the Trainer class for training and validating a model.
+        This class handles the training loop, validation, and logging of metrics.
+
+        Args:
+            model : Model to be trained.
+            train_loader (_type_): _description_
+            val_loader (_type_): _description_
+            loss_fn (_type_): _description_
+            optimizer (_type_): _description_
+            device (str, optional): _description_. Defaults to 'cpu'.
+            use_comet (bool, optional): _description_. Defaults to False.
+            live_plot (bool, optional): _description_. Defaults to True.
+            plot_update_freq (int, optional): _description_. Defaults to 1.
+            training_info_path (str, optional): Folder to save and load results. Defaults to "".
+            lr_scheduler (_type_, optional): _description_. Defaults to None.
+            grad_clip_value (float, optional): _description_. Defaults to 1.0.
+            history (_type_, optional): _description_. Defaults to None.
+        """
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -80,7 +98,6 @@ class Trainer:
             self.optimizer.zero_grad()
 
             # Forward pass
-
             pred_graph = self.model(batch)
 
             # Create target graph
@@ -278,7 +295,7 @@ class Trainer:
             history (Dict): History of training/validation losses
         """
         folder = self.training_info_path+"/"
-        save_path = os.path.abspath(folder +filename) if filename else None
+        save_path = os.path.abspath(folder+filename) if filename else None
 
         # Create history if the model is not pretrained
         if self.history is None:

@@ -1,9 +1,10 @@
-device: "cpu"
+device: "cuda"
 exp_path: "example_results"
 dataset:
   path: "./Data/aBN_HSX/nr_atoms_32"
+  load_other_nr_atoms: true
   split_ratio: 0.85
-  batch_size: 1
+  batch_size: 30
   cutoff: 3.0
   max_samples: null
 

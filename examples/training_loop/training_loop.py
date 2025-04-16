@@ -58,13 +58,15 @@ def main():
     dataset_config = config["dataset"]
     orbitals = config["orbitals"]
 
+    # TODO: Better? to, instead of keeping all the dataset loaded in memory, first save the conversion to graph in the disk and then load it from there. But we will then have to keep all the graphs loaded anyways! How can we do better?
     train_loader, val_loader = prepare_dataset(
         dataset_path=dataset_config["path"],
         orbitals=orbitals,
         split_ratio=dataset_config["split_ratio"],
         batch_size=dataset_config["batch_size"],
         cutoff=dataset_config["cutoff"],
-        max_samples=dataset_config["max_samples"]
+        max_samples=dataset_config["max_samples"],
+        load_other_nr_atoms=dataset_config["load_other_nr_atoms"]
     )
 
     # === Model Configuration ===

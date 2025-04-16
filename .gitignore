@@ -1,6 +1,6 @@
 Data
-
 .venv
+
 # Ignore checkpoints
 checkpoints
 # Ignore psych folder or file
@@ -17,3 +17,6 @@ __pycache__/
 .idea
 # Ignore results of the example
 example_results
+
+# Ignore training_loop_config.yaml file (configuration file)
+training_loop_config.yaml

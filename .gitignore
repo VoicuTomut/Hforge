@@ -17,6 +17,3 @@ __pycache__/
 .idea
 # Ignore results of the example
 example_results
-
-# Ignore training_loop_config.yaml file (configuration file)
-examples/training_loop/training_loop_config.yaml

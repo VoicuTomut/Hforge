@@ -43,7 +43,7 @@ INTERACTIN_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInt
 def main():
 
     # === Load configuration ===
-    with open("examples/training_loop/training_loop_cinfig.yaml", "r") as f:
+    with open("examples/training_loop/training_loop_config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
     exp_path=config["exp_path"]
@@ -51,20 +51,22 @@ def main():
     save_to_yaml(config, f"{exp_path}/training_config.yaml")
 
     # === Device setup ===
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if (torch.cuda.is_available() and config["device"]!="cpu") else 'cpu')
     print(f"Using device: {device}")
 
     # === Dataset Preparation ===
     dataset_config = config["dataset"]
     orbitals = config["orbitals"]
 
+    # TODO: Better? to, instead of keeping all the dataset loaded in memory, first save the conversion to graph in the disk and then load it from there. But we will then have to keep all the graphs loaded anyways! How can we do better?
     train_loader, val_loader = prepare_dataset(
         dataset_path=dataset_config["path"],
         orbitals=orbitals,
         split_ratio=dataset_config["split_ratio"],
         batch_size=dataset_config["batch_size"],
         cutoff=dataset_config["cutoff"],
-        max_samples=dataset_config["max_samples"]
+        max_samples=dataset_config["max_samples"],
+        load_other_nr_atoms=dataset_config["load_other_nr_atoms"]
     )
 
     # === Model Configuration ===
@@ -74,7 +76,7 @@ def main():
     model_config["atomic_descriptors"]["interaction_cls"] = INTERACTIN_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
 
     model = ModelShell(model_config).to(device)
-    print("\n Model:\n",model)
+    # print("\n Model:\n",model)
 
     # === Model loading ===
     path_trained_model = model_config["path_trained_model"]

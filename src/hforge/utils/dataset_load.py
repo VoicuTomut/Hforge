@@ -1,9 +1,11 @@
 
 from hforge.graph_dataset import graph_from_row
-from datasets import load_from_disk
+from datasets import load_from_disk, concatenate_datasets
 from torch_geometric.loader import DataLoader
 
-def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutoff=4.0, max_samples=None):
+def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutoff=4.0, max_samples=None, load_other_nr_atoms=False):
+    import os
+    from random import shuffle
     """
     Prepare dataset for training by returning the train and validation data loaders.
 
@@ -14,12 +16,28 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         batch_size: Batch size for dataloaders
         cutoff: Cutoff distance for graph construction
         max_samples: Maximum number of samples to load (for debugging)
+        load_other_nr_atoms (bool, optional): If set to True, it will load all the data in the parent folder of the specified data folder in `dataset_path` into a unified dataset. Default is False.
 
     Returns:
         train_loader, val_loader
     """
-    # Load dataset
-    dataset = load_from_disk(dataset_path)
+    # Load all datasets the the parent folder of the specified folder
+    if load_other_nr_atoms:
+        # Load all subfolders in the parent directory
+        parent_folder_path = os.path.abspath(os.path.join(dataset_path, os.pardir))
+        # Iterate through all the files in the parent folder
+        dataset_list = []
+        for folder in os.listdir(parent_folder_path):
+            folder_path = os.path.join(parent_folder_path, folder)
+            # Ensure it's a folder
+            if os.path.isdir(folder_path):
+                dataset_list.append(load_from_disk(folder_path))
+        # Concatenate all datasets into one
+        dataset = concatenate_datasets(dataset_list)
+
+    # Only load the specified dataset
+    else:
+        dataset = load_from_disk(dataset_path)
 
     # Convert dataset to graph form
     graph_dataset = []
@@ -49,11 +67,14 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         return batch
 
     # Split into train and validation
+    # First shuffle the dataset
+    shuffle(graph_dataset)
+    # Then split it
     split_idx = int(len(graph_dataset) * split_ratio)
     train_dataset = graph_dataset[:split_idx]
     val_dataset = graph_dataset[split_idx:]
 
-    # Create data loaders with custom collate function
+    # Create data loaders with custom collate function 
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -71,7 +92,6 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
     )
 
     print(f"Created {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
-    print(f"Created {len(train_dataset)} training samples and {len(val_dataset)} validation samples")
     print("Training batch example:")
     for batch in train_loader:
         print(batch)

@@ -15,8 +15,5 @@ __pycache__/
 *.pyc
 #Ignore .idea folder (PyCharm project files)
 .idea
-# Ignore results of the example codes but preserve folder
-EXAMPLE/*
-
-# This is for Angel.
-EXAMPLE_info_important
+# Ignore results of the example
+example_results

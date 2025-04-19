@@ -53,16 +53,15 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 
 ## Todo
 
-- [ ] Train the model and experiment with the lr.
+- [x] Add support to train with different nr of atoms (Angel)
 - [x] Try to download the new data
-- [ ] Visualization of the eigenvalues of the Intergral Transfer Matrix of H. Use the script of thomas.
+- [x] Visualization of the eigenvalues of the Intergral Transfer Matrix of H. Use the script of thomas.
 - [ ] Study how does the "two (or more) interaction" affect to the convergence of the training (whatever is this interaction term)
-- [ ] WHY IS THE TRAINING SLOWER WITH CUDA
 - [ ] Improve package importing time PLEASE
 - [x] Check if shifts are used inside the MACE implementation (Angel) and add if needed (Andrei)
 - [ ] Improve the comments throughout the code (Angel)
 - [x] Save the output of the example in a directory call EXAMPLE_info and add it to gitignore (issue+branch*push) (Angel)
-- [ ] Tune the hyperparameters and see how it affects the results (Angel)
+- [x] Tune the hyperparameters and see how it affects the results (Angel)
 - [X] Try to fix the batching problem when training with different numbers of atoms, limit to 32 (Andrei)
 - [ ] Benchmark with other H generating codes (Ange) (maybe around middle of april)
 - [ ] Investigate if training on 32 atoms can generalize to 64 atoms (similar to 8→32 generalization) ?

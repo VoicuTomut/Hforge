@@ -76,6 +76,7 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
+    n_layers: 2
 
   node_extraction:
     orbitals:
@@ -89,13 +90,14 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
+    n_layers: 2
 
 optimizer:
-  lr: 1e-5
-  weight_decay: 1e-5
+  lr: 1e-3
+  weight_decay: 1e-4
 
 scheduler:
-  T_0: 20
+  T_0: 15
   T_mult: 2
   eta_min: 1e-7
 
@@ -104,7 +106,7 @@ trainer:
   live_plot: true
   plot_update_freq: 1
   grad_clip_value: 0.1
-  num_epochs: 2000
+  num_epochs: 4000
   filename: "best_model.pt"
 
 cost_function:

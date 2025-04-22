@@ -137,6 +137,9 @@ class NodeExtractionBasic(nn.Module):
     def __init__(self, config_routine):
         super(NodeExtractionBasic, self).__init__()
 
+        # Get the number of layers
+        self.n_layers = config_routine["n_layers"]
+
         # Get the orbital information
         self.orbitals = config_routine["orbitals"]
 
@@ -199,9 +202,10 @@ class NodeExtractionBasic(nn.Module):
         edge_index = graph_data["reduce_edge_index"]
 
         # 1. Apply equivariant message passing to update node features based on their environment
-        updated_node_features, _ = self.message_passing(
-            node_features, edge_radial, edge_angular, edge_index
-        )
+        for i in range(self.n_layers):
+            updated_node_features, _ = self.message_passing(
+                node_features, edge_radial, edge_angular, edge_index
+            )
 
         # 2. Generate on-site matrices for each atom
         on_sites = []

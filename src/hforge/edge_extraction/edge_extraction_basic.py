@@ -101,7 +101,7 @@ class MessagePassing(nn.Module):
         # Concatenate source, destination, and edge features
         edge_inputs = torch.cat([src_features, dst_features, edge_features], dim=-1)
 
-        # Update edge features
+        #* Update edge features
         edge_features_updated = self.edge_update(edge_inputs) + edge_features  # Residual connection
 
         # 2. Then update nodes using aggregated edge information
@@ -115,7 +115,7 @@ class MessagePassing(nn.Module):
             # Aggregate edge features as messages to the target node
             message = torch.cat([node_features[target_node], edge_features_updated[i]], dim=-1)
 
-            # Update node features
+            #* Update node features
             node_update_i = self.node_update(message)
 
             # Add to the target node (will be normalized later)
@@ -144,6 +144,8 @@ class EdgeExtractionBasic(nn.Module):
     def __init__(self, config_routine):
         super(EdgeExtractionBasic, self).__init__()
 
+        # Get the number of layers
+        self.n_layers = config_routine["n_layers"]
 
         # Get the orbital information
         self.orbitals = config_routine["orbitals"]
@@ -208,10 +210,12 @@ class EdgeExtractionBasic(nn.Module):
         edge_index = graph_data["reduce_edge_index"]
 
 
-        # 1. Apply equivariant message passing to update node and edge features
-        updated_node_features, updated_edge_features = self.message_passing(
-            node_features, edge_radial, edge_angular, edge_index
-        )
+        # 1. Apply equivariant message passing to update node and edge features.
+        # Several layers of message passing.
+        for i in range(self.n_layers):
+            updated_node_features, updated_edge_features = self.message_passing(
+                node_features, edge_radial, edge_angular, edge_index
+            )
 
         # Split updated edge features back into radial and angular components
         updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]

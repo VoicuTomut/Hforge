@@ -105,7 +105,7 @@ class ModelShell(torch.nn.Module):
                 angular_embedding=embeddings['edges']['angular_embedding']
             )
 
-        # Extract information:
+        # Message Passing and extract information:
         model_results= {"edge_index":graph_data["reduce_edge_index"]}
         if self.edge_extraction is not None:
             edge_description=self.edge_extraction(graph_data,embeddings,atomic_env_descriptor )

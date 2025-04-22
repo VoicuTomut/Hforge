@@ -2,8 +2,11 @@
 example of model inferance
 """
 
+print("FLAG Before import torch")
 import torch
+print("FLAG Before import")
 import plotly.graph_objects as go
+print("FLAG Before FROM IMPORT")
 from plotly.subplots import make_subplots
 import numpy as np
 
@@ -27,6 +30,7 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None, want_png_p
     Returns:
     plotly.graph_objects.Figure: The plotly figure object with 4 subplots
     """
+    print("FLAG 2")
     # Convert to numpy if they're PyTorch tensors
     if isinstance(original_h, torch.Tensor):
         original_h = original_h.detach().cpu().numpy()
@@ -65,6 +69,7 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None, want_png_p
     percent_diff_min = np.min(percent_diff)
     percent_diff_max = np.max(percent_diff)
 
+    print("FLAG 3")
 
     # Print extrema for differences
     # print(f"Difference - Min: {diff_min:.6f}, Max: {diff_max:.6f}")
@@ -158,6 +163,7 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None, want_png_p
     )
 
     # Add percentage difference (bottom-right)
+    print("FLAG")
     # Create a separate figure for the percentage difference
     fig_percent_diff = go.Figure()
     fig_percent_diff.add_trace(
@@ -212,7 +218,9 @@ def plot_comparison_matrices(original_h, predicted_h, save_path=None, want_png_p
 
     # Save the percent_diff figure separately if sepcified
     if want_png_percent_diff:
+        print("Saving figure to PNG")
         fig_percent_diff.write_image(save_path.replace('.html', '_percent_diff.png'))
+        print("Saved")
 
     return fig
 

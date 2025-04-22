@@ -36,7 +36,7 @@ def save_to_yaml(data, path):
         yaml.dump(data, file, default_flow_style=False)
 
 COST_FN={"mse_cost_function":mse_cost_function}
-INTERACTIN_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInteractionBlock}
+INTERACTION_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInteractionBlock}
 
 
 
@@ -72,8 +72,8 @@ def main():
     # === Model Configuration ===
     model_config = config["model"]
     # Inject classes into model config (since YAML can't store class references)
-    model_config["atomic_descriptors"]["interaction_cls_first"] = INTERACTIN_BLOKS[model_config["atomic_descriptors"]["interaction_cls_first"]]
-    model_config["atomic_descriptors"]["interaction_cls"] = INTERACTIN_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
+    model_config["atomic_descriptors"]["interaction_cls_first"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls_first"]]
+    model_config["atomic_descriptors"]["interaction_cls"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
 
     model = ModelShell(model_config).to(device)
     # print("\n Model:\n",model)

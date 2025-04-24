@@ -9,7 +9,7 @@ This is used because it keeps the input to th emodel simple so the only inputs o
 import torch
 from e3nn import o3
 from hforge.edge_agregator import EdgeAggregator
-from hforge.edge_extraction import EdgeExtractionBasic
+from hforge.edge_extraction import EdgeExtractionGraphConvolutional
 from hforge.node_extraction import NodeExtractionBasic
 from hforge.mace.mace_descriptor import MACEDescriptor
 from hforge.encodings import EmbeddingBase
@@ -75,9 +75,10 @@ class ModelShell(torch.nn.Module):
         features = compute_mace_output_shape( config_routine["atomic_descriptors"])
         config_routine["edge_extraction"]["descriptor_dim"]=features
 
-        self.edge_extraction=EdgeExtractionBasic(
+        self.edge_extraction=EdgeExtractionGraphConvolutional(
             config_routine["edge_extraction"]
         )
+        print("SE HA INICIADO EL EDGE EXTRACTION CONVOLUTIONAL")
         config_routine["node_extraction"]["edge_radial_dim"] = config_routine["atomic_descriptors"][
             "radial_embedding.out_dim"]
         config_routine["node_extraction"]["edge_angular_dim"] = config_routine["atomic_descriptors"][

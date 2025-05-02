@@ -1,4 +1,5 @@
 import torch
+import os
 
 
 def load_model(model, optimizer=None, path="best_model.pt", device='cpu'):

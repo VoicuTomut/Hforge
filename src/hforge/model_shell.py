@@ -83,7 +83,12 @@ class ModelShell(torch.nn.Module):
             "EdgeExtractionGraphConvolutional": EdgeExtractionGraphConvolutional,
             "EdgeExtractionBasic": EdgeExtractionBasic
         }
+
         # Initialize depending on the chosen in the configuration.
+
+        # If not specified, use the default class.
+        config_routine["edge_extraction"]["edge_extraction_class"] = config_routine["edge_extraction"].get("edge_extraction_class", "EdgeExtractionBasic")
+        # Initialize the edge extraction class
         self.edge_extraction = edge_extraction_class[config_routine["edge_extraction"]["edge_extraction_class"]](
             config_routine["edge_extraction"],
             device = device
@@ -101,6 +106,7 @@ class ModelShell(torch.nn.Module):
             "NodeExtractionGraphConvolutional": NodeExtractionGraphConvolutional,
             "NodeExtractionBasic": NodeExtractionBasic
         }
+        config_routine["node_extraction"]["node_extraction_class"] = config_routine["node_extraction"].get("node_extraction_class", "NodeExtractionBasic")
         self.node_extraction = node_extraction_class[config_routine["node_extraction"]["node_extraction_class"]](
             config_routine["node_extraction"],
             device = device

@@ -78,6 +78,7 @@ model:
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
     mp_layers: 2
+    share_parameters: false
 
   node_extraction:
     node_extraction_class: NodeExtractionGraphConvolutional
@@ -93,6 +94,7 @@ model:
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
     mp_layers: 2
+    share_parameters: false
 
 optimizer:
   lr: 1e-3

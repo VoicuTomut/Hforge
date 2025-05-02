@@ -134,7 +134,7 @@ class MessagePassing(nn.Module):
 
 
 class NodeExtractionBasic(nn.Module):
-    def __init__(self, config_routine):
+    def __init__(self, config_routine, device="cpu"):
         super(NodeExtractionBasic, self).__init__()
 
         # Get the number of layers

@@ -219,9 +219,8 @@ class Trainer:
 
         print(f"Updated training plot saved to {self.plot_path}")
 
-    def update_plot(self):
+    def update_plot(self, start_from=0):
         """Create final detailed plots from history of training/validation losses"""
-        start_from = 0
 
         epochs = range(len(self.history["train_loss"]))[start_from:]
         if len(epochs) != len(self.history["val_loss"][start_from:]):

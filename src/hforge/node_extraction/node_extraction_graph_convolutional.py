@@ -146,7 +146,7 @@ class NodeExtractionGraphConvolutional(nn.Module):
         self.device = device
 
         # Get the number of layers
-        self.n_layers = config_routine.get("n_layers", 1)  # Default to 1 if not specified
+        self.mp_layers = config_routine.get("mp_layers", 1)  # Default to 1 if not specified
 
         # Get the orbital information
         self.orbitals = config_routine["orbitals"]
@@ -165,12 +165,12 @@ class NodeExtractionGraphConvolutional(nn.Module):
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
 
         # Initialize the message passing layer to update node features
-        self.message_passing = MessagePassing(
+        self.message_passing_layers = [MessagePassing(
             node_dim=self.input_dim,
             edge_radial_dim=self.edge_radial_dim,
             edge_angular_dim=self.edge_angular_dim,
             device=self.device
-        )
+        ) for _ in range(self.mp_layers)]
 
         # Create extraction heads for each atom type (for on-site matrices)
         self.extraction_heads = nn.ModuleDict()
@@ -206,10 +206,16 @@ class NodeExtractionGraphConvolutional(nn.Module):
 
 
         # 1. Apply message passing to update node and edge features. Several layers of message passing.
-        for i in range(self.n_layers):
-            updated_node_features, _ = self.message_passing(
-                node_features, edge_radial, edge_angular, edge_index
+        updated_node_features = node_features
+        updated_edge_radial = edge_radial
+        updated_edge_angular = edge_angular
+        for layer in self.message_passing_layers:
+            updated_node_features, updated_edge_features = layer(
+                updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
             )
+            # Split updated edge features back into radial and angular components
+            updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
+            updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
 
         # 2. Generate on-site matrices for each atom
         on_sites = []

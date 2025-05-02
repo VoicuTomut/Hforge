@@ -63,7 +63,7 @@ class MessagePassing(nn.Module):
         self.node_update = nn.Sequential(
             nn.Linear(node_dim + edge_combined_dim, node_dim),
             nn.SiLU() #! Change?
-        )
+        ).to(self.device)
 
         # Edge update network (focus on this as per requirements)
         self.edge_update = nn.Sequential(
@@ -78,7 +78,7 @@ class MessagePassing(nn.Module):
             nn.Linear(int(edge_combined_dim/4), int(edge_combined_dim/2)),
             nn.ReLU(),
             nn.Linear(int(edge_combined_dim/2), edge_combined_dim)
-        )
+        ).to(self.device)
 
     def forward(self, node_features, edge_radial, edge_angular, edge_index):
         """
@@ -146,7 +146,7 @@ class EdgeExtractionGraphConvolutional(nn.Module):
         self.device = device
 
         # Get the number of layers
-        self.n_layers = config_routine.get("n_layers", 1)  # Default to 1 if not specified
+        self.mp_layers = config_routine.get("mp_layers", 1)  # Default to 1 if not specified
 
         # Get the orbital information
         self.orbitals = config_routine["orbitals"]
@@ -164,12 +164,20 @@ class EdgeExtractionGraphConvolutional(nn.Module):
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
 
         # Initialize the message passing layer
-        self.message_passing = MessagePassing(
+        # self.message_passing = MessagePassing(
+        #     node_dim=self.input_dim,
+        #     edge_radial_dim=self.edge_radial_dim,
+        #     edge_angular_dim=self.edge_angular_dim,
+        #     device=self.device
+        # )
+
+        #? Support for more message passing layers
+        self.message_passing_layers = [MessagePassing(
             node_dim=self.input_dim,
             edge_radial_dim=self.edge_radial_dim,
             edge_angular_dim=self.edge_angular_dim,
             device=self.device
-        )
+        ) for _ in range(self.mp_layers)]
 
         # Create extraction heads for each atom-atom pair
         self.extraction_heads = nn.ModuleDict()
@@ -210,14 +218,25 @@ class EdgeExtractionGraphConvolutional(nn.Module):
 
 
         # 1. Apply message passing to update node and edge features. Several layers of message passing.
-        for i in range(self.n_layers):
-            updated_node_features, updated_edge_features = self.message_passing(
-                node_features, edge_radial, edge_angular, edge_index
-            )
+        updated_node_features = node_features
+        updated_edge_radial = edge_radial
+        updated_edge_angular = edge_angular
+        # for i in range(self.mp_layers):
+        #     updated_node_features, updated_edge_features = self.message_passing(
+        #         updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
+        #     )
+        #     # Split updated edge features back into radial and angular components
+        #     updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
+        #     updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
 
-        # Split updated edge features back into radial and angular components
-        updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
-        updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
+        #? Adding support for more message passing layers
+        for layer in self.message_passing_layers:
+            updated_node_features, updated_edge_features = layer(
+                updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
+            )
+            # Split updated edge features back into radial and angular components
+            updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
+            updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
 
         # 2. Generate hopping matrices for each edge
         hoppings = []

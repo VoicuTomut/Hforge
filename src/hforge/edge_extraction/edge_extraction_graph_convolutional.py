@@ -148,6 +148,9 @@ class EdgeExtractionGraphConvolutional(nn.Module):
         # Get the number of layers
         self.mp_layers = config_routine.get("mp_layers", 1)  # Default to 1 if not specified
 
+        # Share parameters across layers or not
+        self.share_parameters = config_routine.get("share_parameters", False)  # Default to False if not specified
+
         # Get the orbital information
         self.orbitals = config_routine["orbitals"]
 
@@ -162,16 +165,12 @@ class EdgeExtractionGraphConvolutional(nn.Module):
         self.edge_radial_dim = config_routine.get("edge_radial_dim", 8)
         self.edge_angular_dim = config_routine.get("edge_angular_dim", 9)
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
+        
+        # Check if parameters should be shared across layers
+        if self.share_parameters:
+            self.mp_layers = 1
 
-        # Initialize the message passing layer
-        # self.message_passing = MessagePassing(
-        #     node_dim=self.input_dim,
-        #     edge_radial_dim=self.edge_radial_dim,
-        #     edge_angular_dim=self.edge_angular_dim,
-        #     device=self.device
-        # )
-
-        #? Support for more message passing layers
+        # Initialize the message passing layers
         self.message_passing_layers = [MessagePassing(
             node_dim=self.input_dim,
             edge_radial_dim=self.edge_radial_dim,
@@ -221,22 +220,25 @@ class EdgeExtractionGraphConvolutional(nn.Module):
         updated_node_features = node_features
         updated_edge_radial = edge_radial
         updated_edge_angular = edge_angular
-        # for i in range(self.mp_layers):
-        #     updated_node_features, updated_edge_features = self.message_passing(
-        #         updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
-        #     )
-        #     # Split updated edge features back into radial and angular components
-        #     updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
-        #     updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
 
-        #? Adding support for more message passing layers
-        for layer in self.message_passing_layers:
-            updated_node_features, updated_edge_features = layer(
-                updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
-            )
-            # Split updated edge features back into radial and angular components
-            updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
-            updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
+        # If parameters are shared, use the first layer for all iterations
+        # Otherwise, iterate through all layers
+        if self.share_parameters:
+            for i in range(self.mp_layers):
+                updated_node_features, updated_edge_features = self.message_passing_layers[0](
+                    updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
+                )
+                # Split updated edge features back into radial and angular components
+                updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
+                updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
+        else:
+            for layer in self.message_passing_layers:
+                updated_node_features, updated_edge_features = layer(
+                    updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
+                )
+                # Split updated edge features back into radial and angular components
+                updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
+                updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
 
         # 2. Generate hopping matrices for each edge
         hoppings = []

@@ -65,6 +65,7 @@ model:
     nr_bits: 10
 
   edge_extraction:
+    edge_extraction_class: EdgeExtractionGraphConvolutional
     orbitals:
       1: 13
       2: 13
@@ -79,6 +80,7 @@ model:
     n_layers: 2
 
   node_extraction:
+    node_extraction_class: NodeExtractionGraphConvolutional
     orbitals:
       1: 13
       2: 13
@@ -99,7 +101,7 @@ optimizer:
 scheduler:
   T_0: 15
   T_mult: 2
-  eta_min: 1e-7
+  eta_min: 1e-3
 
 trainer:
   use_comet: false

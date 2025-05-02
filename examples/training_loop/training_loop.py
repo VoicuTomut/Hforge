@@ -4,10 +4,10 @@ and advanced learning rate scheduling for faster convergence and lower loss
 """
 
 # Imports
+from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import  CosineAnnealingWarmRestarts
-
 try:
     from comet_ml import Experiment
     COMET_AVAILABLE = True
@@ -18,8 +18,7 @@ except ImportError:
 from hforge.utils import prepare_dataset, load_model
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
-from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix
-from hforge.graph_costfucntion import  mse_cost_function
+from hforge.graph_costfucntion import  mse_cost_function, scale_dif_cost_function
 from hforge.trainers.default_trainer import Trainer
 import yaml
 import os
@@ -35,7 +34,8 @@ def save_to_yaml(data, path):
     with open(path, 'w') as file:
         yaml.dump(data, file, default_flow_style=False)
 
-COST_FN={"mse_cost_function":mse_cost_function}
+COST_FN={"mse_cost_function":mse_cost_function,
+          "scale_dif_cost_function":scale_dif_cost_function}
 INTERACTION_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInteractionBlock}
 
 
@@ -75,7 +75,7 @@ def main():
     model_config["atomic_descriptors"]["interaction_cls_first"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls_first"]]
     model_config["atomic_descriptors"]["interaction_cls"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
 
-    model = ModelShell(model_config).to(device)
+    model = ModelShell(model_config, device=device).to(device)
     # print("\n Model:\n",model)
 
     # === Model loading ===

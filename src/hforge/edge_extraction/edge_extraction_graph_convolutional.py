@@ -14,16 +14,17 @@ class MatrixExtractionHead(nn.Module):
         self.num_orbitals_j = num_orbitals_j
         self.output_dim = num_orbitals_i * num_orbitals_j
 
+
         # Neural network to process the environment descriptor and edge embeddings
         self.mlp = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
-            nn.SiLU(),
+            nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.SiLU(),
+            nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.SiLU(),
+            nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(hidden_dim, self.output_dim)
         )
 
@@ -49,32 +50,34 @@ class MessagePassing(nn.Module):
     Focuses on edge updates as specified in the requirements.
     """
 
-    def __init__(self, node_dim, edge_radial_dim, edge_angular_dim, hidden_dim=128):
+    def __init__(self, node_dim, edge_radial_dim, edge_angular_dim, device='cpu'):
         super(MessagePassing, self).__init__()
+
+        self.device = device
 
         # Combined edge dimension
         edge_combined_dim = edge_radial_dim + edge_angular_dim
+        input_dim = edge_combined_dim + 2*node_dim
 
-        # Node update networks
+        # Node update networks. WEIGHTS MATRIX
         self.node_update = nn.Sequential(
-            nn.Linear(node_dim + edge_combined_dim, hidden_dim),
-            nn.SiLU(),
-            nn.Linear(hidden_dim, node_dim)
+            nn.Linear(node_dim + edge_combined_dim, node_dim),
+            nn.SiLU() #! Change?
         )
 
-        # Edge update networks (focus on this as per requirements)
+        # Edge update network (focus on this as per requirements)
         self.edge_update = nn.Sequential(
-            nn.Linear(edge_combined_dim + 2 * node_dim, hidden_dim),
-            nn.SiLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.SiLU(),
-            nn.Linear(hidden_dim, int(hidden_dim/2)),
-            nn.SiLU(),
-            nn.Linear(int(hidden_dim/2), hidden_dim),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.SiLU(),
-            nn.Linear(hidden_dim, edge_combined_dim)
+            nn.Linear(input_dim, int(input_dim/2)),
+            nn.ReLU(),
+            nn.Linear(int(input_dim/2), int(input_dim/4)),
+            nn.ReLU(),
+            nn.Linear(int(input_dim/4), int(input_dim/8)),
+            nn.ReLU(),
+            nn.Linear(int(input_dim/8), int(edge_combined_dim/4)),
+            nn.ReLU(),
+            nn.Linear(int(edge_combined_dim/4), int(edge_combined_dim/2)),
+            nn.ReLU(),
+            nn.Linear(int(edge_combined_dim/2), edge_combined_dim)
         )
 
     def forward(self, node_features, edge_radial, edge_angular, edge_index):
@@ -85,7 +88,10 @@ class MessagePassing(nn.Module):
             edge_angular: Angular features for each edge [num_edges, edge_angular_dim]
             edge_index: Graph connectivity [2, num_edges]
         """
-        # 1. Node feature update. Graph convolutional layer.
+        # === Node feature update - Graph convolutional layer. ===
+        # Get the number of nodes and edges
+        num_nodes = node_features.size(0)
+        num_edges = edge_index.size(1)
 
         # Get source and target node indices for each edge
         src, dst = edge_index # [num_edges]
@@ -94,18 +100,50 @@ class MessagePassing(nn.Module):
         src_features = node_features[src]  # [num_edges, node_dim]
         dst_features = node_features[dst]  # [num_edges, node_dim]
 
-        # Build the node features vector
-        input_node_features = torch.cat([src_features, dst_features, edge_radial, edge_angular], dim=-1)
-        print("input_node_features", input_node_features.shape)
-        raise ValueError("Debugging input_node_features shape")
+        # Normalize by the number of neighbours
+        messages = torch.zeros(num_nodes, node_features.shape[1] + edge_radial.shape[1] + edge_angular.shape[1], device=self.device)  # [num_nodes, node_dim + edge_combined_dim]
+        for i in range(num_edges):
+            source_node_idx = src[i] # [1]
+            target_node_idx = dst[i] # [1]
 
+            # Form the submessage of each node but normalization.
+            submessage = torch.cat([src_features[source_node_idx], edge_radial[i], edge_angular[i]], dim=-1)  # [node_dim + edge_combined_dim], a vector.
+
+            # Count the number of neighbours of this current (source) node.
+            num_neighbours = torch.sum(edge_index[1] == source_node_idx).item()
+
+            # Sum it to the complete message of the target node with proper normalization.
+            messages[target_node_idx] += submessage / num_neighbours
+        
+        # "Update" node features (we are still in the aggregation function but we will just add the self submessage to the whole message).
+        # Vector with all number of neighbours of each node
+        num_neighbours_vector = torch.tensor([torch.sum(edge_index[1] == i) for i in range(num_nodes)], device=self.device) # [num_nodes]
+        # Sum to all messages, but only the first node_dim elements (the rest are edge features).
+        messages[:, :node_features.size(1)] += (node_features / torch.sqrt(num_neighbours_vector).unsqueeze(1))
+
+        # Normalize by the number of neighbours of each node
+        messages /= torch.sqrt(num_neighbours_vector).unsqueeze(1)
+
+        #* Multiply by trainable weights + activation fn.
+        node_features_updated = self.node_update(messages)  # [num_nodes, node_dim + edge_combined_dim]
+
+        # === Edge feature update ===
+
+        # Concatenate source, destination, and edge features
+        edge_inputs = torch.cat([src_features, dst_features, edge_radial, edge_angular], dim=-1)
+
+        #* Update edge features
+        edge_features_updated = self.edge_update(edge_inputs)
 
         return node_features_updated, edge_features_updated
 
 
 class EdgeExtractionGraphConvolutional(nn.Module):
-    def __init__(self, config_routine):
+    def __init__(self, config_routine, device='cpu'):
+
         super(EdgeExtractionGraphConvolutional, self).__init__()
+
+        self.device = device
 
         # Get the number of layers
         self.n_layers = config_routine.get("n_layers", 1)  # Default to 1 if not specified
@@ -130,7 +168,7 @@ class EdgeExtractionGraphConvolutional(nn.Module):
             node_dim=self.input_dim,
             edge_radial_dim=self.edge_radial_dim,
             edge_angular_dim=self.edge_angular_dim,
-            hidden_dim=config_routine.get("hidden_dim_message_passing", 128)
+            device=self.device
         )
 
         # Create extraction heads for each atom-atom pair

@@ -1,6 +1,7 @@
-Data
+# Ignore python virtual environment directory
 .venv
-
+# Ignore data directory
+Data
 # Ignore checkpoints
 checkpoints
 # Ignore psych folder or file
@@ -17,3 +18,6 @@ __pycache__/
 .idea
 # Ignore results of the example
 example_results
+
+# For Angel:
+Data_new

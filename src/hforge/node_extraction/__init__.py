@@ -1,1 +1,2 @@
 from .node_extraction_basic import NodeExtractionBasic
+from .node_extraction_graph_convolutional import NodeExtractionGraphConvolutional

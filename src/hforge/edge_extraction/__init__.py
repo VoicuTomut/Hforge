@@ -1,1 +1,2 @@
 from .edge_extraction_basic import EdgeExtractionBasic
+from .edge_extraction_graph_convolutional import EdgeExtractionGraphConvolutional

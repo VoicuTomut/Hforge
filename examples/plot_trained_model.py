@@ -18,7 +18,7 @@ INTERACTION_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualIn
 
 def main():
     # === Load configuration ===
-    folder_path = "example_results/already_trained_models/lr1e-3_wd1e-4_15T"
+    folder_path = "example_results/already_trained_models/lr1e-3_wd1e-4_15T_1layersmp_shuffledseed4"
     with open(folder_path+"/training_config.yaml", "r") as f:
         config = yaml.safe_load(f)
     
@@ -35,7 +35,7 @@ def main():
     # Load the model
     filename = "/best_model.pt"
     path = os.path.abspath(folder_path + filename)
-    checkpoint = torch.load(path, weights_only=False)
+    checkpoint = torch.load(path, weights_only=False, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
     # Load the dataset
@@ -73,7 +73,7 @@ def main():
 
             # Angel's plot: 
             # Multiplication *100 is needed because it is done like that in the cost function
-            # plot_matrices_true_prediction_difference(original_h.cpu().numpy()*100, predicted_h.cpu().numpy(), path=f"{folder_path}/plot_angel__h_comparison_{i}.png", label="hamiltonian")
+            plot_matrices_true_prediction_difference(original_h.cpu().numpy(), predicted_h.cpu().numpy()/100, path=f"{folder_path}/plot_angel__h_comparison_{i}.png", label="hamiltonian")
 
 
 if __name__ == "__main__":

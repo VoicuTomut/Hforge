@@ -331,7 +331,8 @@ def plot_matrices_true_prediction_difference(M_true, M_pred, label='', path=''):
         axes[i].set_title(titles[i])
         axes[i].xaxis.tick_top()
 
-        fig.colorbar(image)
+        cbar = fig.colorbar(image)
+        cbar.ax.set_title('Ev')
 
     #############################
 
@@ -346,7 +347,8 @@ def plot_matrices_true_prediction_difference(M_true, M_pred, label='', path=''):
     else:
         image = axes[2].imshow(M_diff, cmap=cmap_string,  vmin=-vmax_absolute, vmax=vmax_absolute)#, extent=[-matrix.shape[1]//2, matrix.shape[1]//2, -matrix.shape[0]//2, matrix.shape[0]//2])
     axes[2].set_title('Relative error (M-M\')/M')
-    fig.colorbar(image)
+    cbar = fig.colorbar(image)
+    cbar.ax.set_title('%')
 
     # Plot the max and min
     max_diff = np.max(M_diff)

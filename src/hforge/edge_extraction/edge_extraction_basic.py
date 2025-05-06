@@ -141,7 +141,7 @@ class MessagePassing(nn.Module):
 
 
 class EdgeExtractionBasic(nn.Module):
-    def __init__(self, config_routine):
+    def __init__(self, config_routine, device='cpu'):
         super(EdgeExtractionBasic, self).__init__()
 
         # Get the number of layers

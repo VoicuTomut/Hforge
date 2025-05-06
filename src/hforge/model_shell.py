@@ -10,7 +10,9 @@ import torch
 from e3nn import o3
 from hforge.edge_agregator import EdgeAggregator
 from hforge.edge_extraction import EdgeExtractionBasic
+from hforge.edge_extraction import EdgeExtractionGraphConvolutional
 from hforge.node_extraction import NodeExtractionBasic
+from hforge.node_extraction import NodeExtractionGraphConvolutional
 from hforge.mace.mace_descriptor import MACEDescriptor
 from hforge.encodings import EmbeddingBase
 
@@ -53,7 +55,7 @@ def compute_mace_output_shape(config):
 
 class ModelShell(torch.nn.Module):
 
-    def __init__(self, config_routine):
+    def __init__(self, config_routine, device='cpu'):
         super(ModelShell, self).__init__()
 
         self.embedding=EmbeddingBase(config_routine["embedding"])
@@ -75,15 +77,40 @@ class ModelShell(torch.nn.Module):
         features = compute_mace_output_shape( config_routine["atomic_descriptors"])
         config_routine["edge_extraction"]["descriptor_dim"]=features
 
-        self.edge_extraction=EdgeExtractionBasic(
-            config_routine["edge_extraction"]
+        # === Initialize edge extraction ===
+        # We write here all the possible edge extraction classes.
+        edge_extraction_class = {
+            "EdgeExtractionGraphConvolutional": EdgeExtractionGraphConvolutional,
+            "EdgeExtractionBasic": EdgeExtractionBasic
+        }
+
+        # Initialize depending on the chosen in the configuration.
+
+        # If not specified, use the default class.
+        config_routine["edge_extraction"]["edge_extraction_class"] = config_routine["edge_extraction"].get("edge_extraction_class", "EdgeExtractionBasic")
+        # Initialize the edge extraction class
+        self.edge_extraction = edge_extraction_class[config_routine["edge_extraction"]["edge_extraction_class"]](
+            config_routine["edge_extraction"],
+            device = device
         )
+        
+        # === Initialize node extraction ===
         config_routine["node_extraction"]["edge_radial_dim"] = config_routine["atomic_descriptors"][
             "radial_embedding.out_dim"]
         config_routine["node_extraction"]["edge_angular_dim"] = config_routine["atomic_descriptors"][
             "angular_embedding.out_dim"]
         config_routine["node_extraction"]["descriptor_dim"] = features
-        self.node_extraction = NodeExtractionBasic(config_routine["node_extraction"])
+
+        # We write here all the possible node extraction classes.
+        node_extraction_class = {
+            "NodeExtractionGraphConvolutional": NodeExtractionGraphConvolutional,
+            "NodeExtractionBasic": NodeExtractionBasic
+        }
+        config_routine["node_extraction"]["node_extraction_class"] = config_routine["node_extraction"].get("node_extraction_class", "NodeExtractionBasic")
+        self.node_extraction = node_extraction_class[config_routine["node_extraction"]["node_extraction_class"]](
+            config_routine["node_extraction"],
+            device = device
+        )
         self.global_extraction=None
 
 

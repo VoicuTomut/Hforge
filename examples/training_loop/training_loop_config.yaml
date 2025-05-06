@@ -19,7 +19,7 @@ orbitals:
   8: 13
 
 model:
-  path_trained_model: null
+  path_trained_model: "example_results/train_best_model.pt"
   avg_num_neighbors: 8
   nr_bits: 10
 
@@ -77,7 +77,7 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
-    mp_layers: 2
+    mp_layers: 1
     share_parameters: false
 
   node_extraction:
@@ -93,7 +93,7 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
-    mp_layers: 2
+    mp_layers: 1
     share_parameters: false
 
 optimizer:

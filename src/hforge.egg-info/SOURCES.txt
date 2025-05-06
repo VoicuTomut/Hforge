@@ -81,6 +81,7 @@ src/hforge/mace/tools/torch_geometric/seed.py
 src/hforge/mace/tools/torch_geometric/utils.py
 src/hforge/node_extraction/__init__.py
 src/hforge/node_extraction/node_extraction_basic.py
+src/hforge/node_extraction/node_extraction_graph_convolutional.py
 src/hforge/plots/__init__.py
 src/hforge/plots/plot_matrix.py
 src/hforge/trainers/__init__.py

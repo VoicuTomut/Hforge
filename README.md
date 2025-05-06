@@ -12,7 +12,6 @@ If you need cuda support, then you have to install torch separatelly. Overwritin
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
-HOWEVER CUDA IS NOT WORKING YET
 
 ## Examples
 

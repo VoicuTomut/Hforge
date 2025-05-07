@@ -1,2 +1,3 @@
 from .edge_extraction_basic import EdgeExtractionBasic
 from .edge_extraction_graph_convolutional import EdgeExtractionGraphConvolutional
+from .edge_extraction_universal_set_approximator import EdgeExtractionUniversalApproximator

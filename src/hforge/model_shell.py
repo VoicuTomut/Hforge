@@ -11,8 +11,10 @@ from e3nn import o3
 from hforge.edge_agregator import EdgeAggregator
 from hforge.edge_extraction import EdgeExtractionBasic
 from hforge.edge_extraction import EdgeExtractionGraphConvolutional
+from hforge.edge_extraction import EdgeExtractionUniversalApproximator
 from hforge.node_extraction import NodeExtractionBasic
 from hforge.node_extraction import NodeExtractionGraphConvolutional
+from hforge.node_extraction import NodeExtractionUniversalApproximator
 from hforge.mace.mace_descriptor import MACEDescriptor
 from hforge.encodings import EmbeddingBase
 
@@ -81,7 +83,8 @@ class ModelShell(torch.nn.Module):
         # We write here all the possible edge extraction classes.
         edge_extraction_class = {
             "EdgeExtractionGraphConvolutional": EdgeExtractionGraphConvolutional,
-            "EdgeExtractionBasic": EdgeExtractionBasic
+            "EdgeExtractionBasic": EdgeExtractionBasic,
+            "EdgeExtractionUniversalApproximator": EdgeExtractionUniversalApproximator,
         }
 
         # Initialize depending on the chosen in the configuration.
@@ -104,7 +107,8 @@ class ModelShell(torch.nn.Module):
         # We write here all the possible node extraction classes.
         node_extraction_class = {
             "NodeExtractionGraphConvolutional": NodeExtractionGraphConvolutional,
-            "NodeExtractionBasic": NodeExtractionBasic
+            "NodeExtractionBasic": NodeExtractionBasic,
+            "NodeExtractionUniversalApproximator": NodeExtractionUniversalApproximator,
         }
         config_routine["node_extraction"]["node_extraction_class"] = config_routine["node_extraction"].get("node_extraction_class", "NodeExtractionBasic")
         self.node_extraction = node_extraction_class[config_routine["node_extraction"]["node_extraction_class"]](

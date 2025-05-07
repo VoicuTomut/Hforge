@@ -62,7 +62,7 @@ class MessagePassing(nn.Module):
         self.mlp1 = nn.Sequential(
             nn.Linear(all_combined_dim, all_combined_dim),
             nn.Sigmoid(),
-        )
+        ).to(self.device)
 
         # Second MLP
         dims = torch.linspace(all_combined_dim, node_dim/4, 3, dtype=torch.int32, device=self.device)
@@ -74,25 +74,25 @@ class MessagePassing(nn.Module):
             nn.Linear(dims[2], int(node_dim/2)),
             nn.ReLU(),
             nn.Linear(int(node_dim/2), node_dim),
-        )
+        ).to(self.device)
 
         self.node_linear_self = nn.Sequential(
             nn.Linear(node_dim, node_dim),
-        )
+        ).to(self.device)
 
         self.node_linear_neigh = nn.Sequential(
             nn.Linear(node_dim, node_dim),
-        )
+        ).to(self.device)
 
         self.node_activation_fn = nn.Sequential(
             nn.Sigmoid(),
-        )
+        ).to(self.device)
 
         # Edge update
         self.edge_update = nn.Sequential(
             nn.Linear(edge_combined_dim + 2*node_dim, edge_combined_dim + 2*node_dim),
             nn.Sigmoid(),
-        )
+        ).to(self.device)
 
     def forward(self, node_features, edge_radial, edge_angular, edge_index):
         """

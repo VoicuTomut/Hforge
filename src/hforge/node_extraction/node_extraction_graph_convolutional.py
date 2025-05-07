@@ -63,7 +63,7 @@ class MessagePassing(nn.Module):
         self.node_update = nn.Sequential(
             nn.Linear(node_dim + edge_combined_dim, node_dim),
             nn.SiLU() #! Change?
-        )
+        ).to(self.device)
 
          # Edge update networks (focus on this as per requirements)
         self.edge_update = nn.Sequential(
@@ -78,7 +78,7 @@ class MessagePassing(nn.Module):
             nn.Linear(int(edge_combined_dim/4), int(edge_combined_dim/2)),
             nn.ReLU(),
             nn.Linear(int(edge_combined_dim/2), edge_combined_dim)
-        )
+        ).to(self.device)
 
     def forward(self, node_features, edge_radial, edge_angular, edge_index):
         """

@@ -15,7 +15,7 @@ INTERACTION_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualIn
 
 def main():
     # === Load configuration ===
-    folder_path = "example_results/already_trained_models/lr1e-3_wd1e-4_15T_1layersmp_shuffledseed4"
+    folder_path = "example_results"
     with open(folder_path+"/training_config.yaml", "r") as f:
         config = yaml.safe_load(f)
     
@@ -32,7 +32,8 @@ def main():
     # Load the model
     _, _, _, history = load_model(model, path=folder_path+"/train_best_model.pt", device=device)
 
-    plot_last_epochs(history, folder_path, start_from_last_epochs=(500,'Last epochs'), plot_validation=False)
+    plot_last_epochs(history, folder_path, start_from_last_epochs=(500,'Last epochs'), plot_validation=True)
+    plot_last_epochs(history, folder_path, start_from=5)
 
 
 def plot_last_epochs(history, folder, start_from=0, start_from_last_epochs=(0,''), plot_validation=True):
@@ -97,8 +98,11 @@ def plot_last_epochs(history, folder, start_from=0, start_from_last_epochs=(0,''
 
     plt.tight_layout()
     if start_from_last_epochs[0] != 0:
-        plt.savefig(f'{folder}/training_history_last_{start_from_last_epochs[1]}_epochs.png')
-        print(f"Plot saved as {folder}/training_history_last_{start_from_last_epochs[1]}_epochs.png")
+        plt.savefig(f'{folder}/training_history_last_{start_from_last_epochs[0]}_epochs.png')
+        print(f"Plot saved as {folder}/training_history_last_{start_from_last_epochs[0]}_epochs.png")
+    elif start_from != 0:
+        plt.savefig(f'{folder}/training_history_startfrom_{start_from}_epochs.png')
+        print(f"Plot saved as {folder}/training_history_startfrom_{start_from}_epochs.png")
     else:
         plt.savefig(f'{folder}/training_history.png')
         print(f"Plot saved as {folder}/training_history.png")

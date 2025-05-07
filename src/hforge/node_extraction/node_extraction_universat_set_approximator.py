@@ -90,7 +90,7 @@ class MessagePassing(nn.Module):
 
         # Edge update
         self.edge_update = nn.Sequential(
-            nn.Linear(edge_combined_dim + 2*node_dim, edge_combined_dim + 2*node_dim),
+            nn.Linear(edge_combined_dim + 2*node_dim, edge_combined_dim),
             nn.Sigmoid(),
         ).to(self.device)
 
@@ -236,6 +236,7 @@ class NodeExtractionUniversalApproximator(nn.Module):
                 updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
         else:
             for layer in self.message_passing_layers:
+                print("updated_edge_angular.shape: ", updated_edge_angular.shape)
                 updated_node_features, updated_edge_features = layer(
                     updated_node_features, updated_edge_radial, updated_edge_angular, edge_index
                 )

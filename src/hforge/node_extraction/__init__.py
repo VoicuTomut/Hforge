@@ -1,3 +1,4 @@
 from .node_extraction_basic import NodeExtractionBasic
 from .node_extraction_graph_convolutional import NodeExtractionGraphConvolutional
 from .node_extraction_universat_set_approximator import NodeExtractionUniversalApproximator
+from .node_extraction_universat_set_approximator2 import NodeExtractionUniversalApproximator2

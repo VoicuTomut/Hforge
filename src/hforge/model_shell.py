@@ -15,6 +15,7 @@ from hforge.edge_extraction import EdgeExtractionUniversalApproximator
 from hforge.node_extraction import NodeExtractionBasic
 from hforge.node_extraction import NodeExtractionGraphConvolutional
 from hforge.node_extraction import NodeExtractionUniversalApproximator
+from hforge.node_extraction import NodeExtractionUniversalApproximator2
 from hforge.mace.mace_descriptor import MACEDescriptor
 from hforge.encodings import EmbeddingBase
 
@@ -109,6 +110,7 @@ class ModelShell(torch.nn.Module):
             "NodeExtractionGraphConvolutional": NodeExtractionGraphConvolutional,
             "NodeExtractionBasic": NodeExtractionBasic,
             "NodeExtractionUniversalApproximator": NodeExtractionUniversalApproximator,
+            "NodeExtractionUniversalApproximator2": NodeExtractionUniversalApproximator2,
         }
         config_routine["node_extraction"]["node_extraction_class"] = config_routine["node_extraction"].get("node_extraction_class", "NodeExtractionBasic")
         self.node_extraction = node_extraction_class[config_routine["node_extraction"]["node_extraction_class"]](

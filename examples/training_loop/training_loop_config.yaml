@@ -1,12 +1,12 @@
-device: "cpu"
+device: "cuda"
 exp_path: "example_results"
 dataset:
   path: "./Data/aBN_HSX/nr_atoms_32"
   load_other_nr_atoms: true
-  split_ratio: 0.85
+  split_ratio: 0.80
   batch_size: 30
   cutoff: 3.0
-  max_samples: null
+  max_samples: 250
 
 orbitals:
   1: 13
@@ -19,7 +19,7 @@ orbitals:
   8: 13
 
 model:
-  path_trained_model: "example_results/train_best_model.pt"
+  path_trained_model: null
   avg_num_neighbors: 8
   nr_bits: 10
 
@@ -65,7 +65,7 @@ model:
     nr_bits: 10
 
   edge_extraction:
-    edge_extraction_class: EdgeExtractionGraphConvolutional
+    edge_extraction_class: EdgeExtractionUniversalApproximator
     orbitals:
       1: 13
       2: 13
@@ -77,11 +77,11 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
-    mp_layers: 1
+    mp_layers: 3
     share_parameters: false
 
   node_extraction:
-    node_extraction_class: NodeExtractionGraphConvolutional
+    node_extraction_class: NodeExtractionUniversalApproximator
     orbitals:
       1: 13
       2: 13
@@ -93,17 +93,17 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
-    mp_layers: 1
+    mp_layers: 3
     share_parameters: false
 
 optimizer:
   lr: 1e-3
-  weight_decay: 1e-4
+  weight_decay: 1e-5
 
 scheduler:
   T_0: 15
   T_mult: 2
-  eta_min: 1e-3
+  eta_min: 1e-11
 
 trainer:
   use_comet: false

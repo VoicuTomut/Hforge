@@ -8,35 +8,45 @@ print(f"Time taken to import ModelShell: {tf - ti:.1f} seconds")
 import yaml
 from hforge.utils import load_model
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
+import os
+from hforge.utils import create_directory
 
 INTERACTION_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInteractionBlock}
 
 # TODO: Write in the title the nr of atoms, if it's train or val sample and the minimum loss. 
 
 def main():
-    # === Load configuration ===
-    folder_path = "example_results"
-    with open(folder_path+"/training_config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    
     # === Device setup ===
     device = "cpu"
 
-    # === Model Configuration ===
-    model_config = config["model"]
-    model_config["atomic_descriptors"]["interaction_cls_first"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls_first"]]
-    model_config["atomic_descriptors"]["interaction_cls"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
+    # === Load configuration ===
+    directory = r"C:\Users\angel\OneDrive - Universitat de Barcelona\1A. MASTER I\TFM\example_results\new_example_results_5_model_comparison"
+    plots_directory = os.path.join(directory, "plots")
+    create_directory(plots_directory)
 
-    model = ModelShell(model_config).to(device)
+    for path, folders, files in os.walk(directory):
+        for folder in folders:
+            folder_path = os.path.join(directory, folder)
 
-    # Load the model
-    _, _, _, history = load_model(model, path=folder_path+"/train_best_model.pt", device=device)
+            #=== Plot ===
+            with open(folder_path+"/training_config.yaml", "r") as f:
+                config = yaml.safe_load(f)
 
-    plot_last_epochs(history, folder_path, start_from_last_epochs=(500,'Last epochs'), plot_validation=True)
-    plot_last_epochs(history, folder_path, start_from=5)
+            # === Model Configuration ===
+            model_config = config["model"]
+            model_config["atomic_descriptors"]["interaction_cls_first"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls_first"]]
+            model_config["atomic_descriptors"]["interaction_cls"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
+
+            model = ModelShell(model_config).to(device)
+
+            # Load the model
+            _, _, _, history = load_model(model, path=folder_path+"/train_best_model.pt", device=device)
+
+            plot_last_epochs(history, folder_path, start_from_last_epochs=(100,'Last epochs'), plot_validation=True, save_in=(plots_directory, folder))
+            plot_last_epochs(history, folder_path, start_from=5, save_in=(plots_directory, folder))
 
 
-def plot_last_epochs(history, folder, start_from=0, start_from_last_epochs=(0,''), plot_validation=True):
+def plot_last_epochs(history, folder, start_from=0, start_from_last_epochs=(0,''), plot_validation=True, save_in=None):
     import matplotlib.pyplot as plt
     """Create final detailed plots from history of training/validation losses"""
 
@@ -98,13 +108,19 @@ def plot_last_epochs(history, folder, start_from=0, start_from_last_epochs=(0,''
 
     plt.tight_layout()
     if start_from_last_epochs[0] != 0:
-        plt.savefig(f'{folder}/training_history_last_{start_from_last_epochs[0]}_epochs.png')
-        print(f"Plot saved as {folder}/training_history_last_{start_from_last_epochs[0]}_epochs.png")
+        plt.savefig(f'{folder}/plot_last_{start_from_last_epochs[0]}epochs.png')
+        if save_in is not None:
+            plt.savefig(f"{save_in[0]}/plot_last_{start_from_last_epochs[0]}epochs_{save_in[1]}")
+        print(f"Plot saved as {folder}/training_history_last_{start_from_last_epochs[0]}epochs.png")
     elif start_from != 0:
-        plt.savefig(f'{folder}/training_history_startfrom_{start_from}_epochs.png')
+        plt.savefig(f'{folder}/training_history_startfrom_{start_from}epochs.png')
+        if save_in is not None:
+            plt.savefig(f"{save_in[0]}/plot_startfrom_{start_from}epochs_{save_in[1]}")
         print(f"Plot saved as {folder}/training_history_startfrom_{start_from}_epochs.png")
     else:
         plt.savefig(f'{folder}/training_history.png')
+        if save_in is not None:
+            plt.savefig(f"{save_in[0]}/training_history_{save_in[1]}")
         print(f"Plot saved as {folder}/training_history.png")
     plt.close()
     

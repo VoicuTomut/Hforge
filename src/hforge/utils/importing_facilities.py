@@ -1,6 +1,6 @@
 import importlib
 
-def get_interaction_block(class_name, module="hforge.mace.modules"):
+def get_object_from_module(class_name, module="hforge.mace.modules"):
     try:
         return getattr(importlib.import_module(module), class_name)
     except AttributeError:

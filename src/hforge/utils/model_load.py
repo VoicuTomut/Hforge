@@ -8,7 +8,7 @@ import yaml
 # Local application imports
 from hforge.model_shell import ModelShell
 from hforge.utils import prepare_dataset, prepare_dataloaders
-from hforge.utils import get_interaction_block
+from hforge.utils import get_object_from_module
 
 
 def load_model(model, optimizer=None, path="best_model.pt", device='cpu'):
@@ -67,8 +67,8 @@ def load_model_and_dataset_from_directory(directory: str, model_filename: str, w
 
     # === Model Configuration ===
     model_config = config["model"]
-    model_config["atomic_descriptors"]["interaction_cls_first"] = get_interaction_block(model_config["atomic_descriptors"]["interaction_cls_first"])
-    model_config["atomic_descriptors"]["interaction_cls"] = get_interaction_block(model_config["atomic_descriptors"]["interaction_cls"])
+    model_config["atomic_descriptors"]["interaction_cls_first"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls_first"])
+    model_config["atomic_descriptors"]["interaction_cls"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls"])
     model = ModelShell(model_config).to(device)
 
     # === Load the model ===

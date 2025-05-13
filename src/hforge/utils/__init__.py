@@ -2,4 +2,4 @@ from .dataset_load import prepare_dataset, prepare_dataloaders
 from .model_load import load_model, load_model_and_dataset_from_directory
 from .directories import create_directory
 from .model_actions import generate_prediction
-from .importing_facilities import get_interaction_block
+from .importing_facilities import get_object_from_module

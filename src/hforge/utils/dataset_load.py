@@ -3,7 +3,7 @@ from hforge.graph_dataset import graph_from_row
 from datasets import load_from_disk, concatenate_datasets
 from torch_geometric.loader import DataLoader
 
-def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutoff=4.0, max_samples=None, load_other_nr_atoms=False, return_dataloaders=True):
+def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, cutoff=4.0, max_samples=None, load_other_nr_atoms=False):
     import os
     import random
     """
@@ -51,9 +51,22 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         # Break if we've reached max_samples
         if max_samples is not None and sample_count >= max_samples:
             break
-    # print("Graph right after conversion from row: ",  graph["edge_index"])
-
     print("Graph generation done!")
+
+    # Split into train and validation
+    # First shuffle the dataset, but always keep the same seed for reproducibility
+    random.Random(4).shuffle(graph_dataset)
+    # Then split it
+    split_idx = int(len(graph_dataset) * split_ratio)
+    train_dataset = graph_dataset[:split_idx]
+    validation_dataset = graph_dataset[split_idx:]
+    print(f"Created {len(train_dataset)} training samples and {len(validation_dataset)} validation samples.")
+
+    return train_dataset, validation_dataset
+
+
+def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1):
+    # Create data loaders with custom collate function
 
     # Custom collate function to ensure proper ordering of h and s matrices
     def custom_collate(batch):
@@ -67,15 +80,6 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
 
         return batch
 
-    # Split into train and validation
-    # First shuffle the dataset, but always keep the same seed for reproducibility
-    random.Random(4).shuffle(graph_dataset)
-    # Then split it
-    split_idx = int(len(graph_dataset) * split_ratio)
-    train_dataset = graph_dataset[:split_idx]
-    val_dataset = graph_dataset[split_idx:]
-
-    # Create data loaders with custom collate function 
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -84,21 +88,17 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, batch_size=1, cutof
         collate_fn=custom_collate
     )
 
-    val_loader = DataLoader(
-        val_dataset,
+    validation_loader = DataLoader(
+        validation_dataset,
         batch_size=batch_size,
         shuffle=False,
         pin_memory=True,
         collate_fn=custom_collate
     )
 
-    print(f"Created {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
     print("Training batch example:")
     for batch in train_loader:
         print(batch)
         break
 
-    if return_dataloaders:
-        return train_loader, val_loader
-    else:
-        return train_dataset, val_dataset
+    return train_loader, validation_loader

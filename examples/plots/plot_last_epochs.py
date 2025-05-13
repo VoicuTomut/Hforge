@@ -66,7 +66,7 @@ def plot_last_epochs(history, folder, start_from=0, start_from_last_epochs=(0,''
         raise ValueError("The length of train_loss and val_loss do not coincide.")
     plt.figure(figsize=(12, 8))
 
-    # Main loss plot
+    # Main loss plots
     plt.subplot(3, 1, 1)
     plt.plot(epochs, history['learning_rate'][start_from:], 'g-')
     plt.xlabel('Epoch')

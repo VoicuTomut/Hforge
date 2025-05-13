@@ -19,7 +19,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 - Run simple inference:
   ```bash
-  python examples/model_inference.py
+  python examples/deprecated_model_inference.py
   ```
 
 - Run a training loop:
@@ -29,7 +29,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 - Test the model:
   ```bash
-  python examples/model_show.py
+  python examples/deprecated_model_show.py
   ```
 
 ### Data Management

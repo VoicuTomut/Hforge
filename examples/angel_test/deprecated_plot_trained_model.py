@@ -66,7 +66,7 @@ def main():
     create_final_plots(history)
 
 # def update_plot(train_losses, val_losses, plot_path):
-#     """Update the live plot with new loss values"""
+#     """Update the live plots with new loss values"""
 #     epochs = len(train_losses)
 #     if epochs != len(val_losses):
 #         raise ValueError("The length of train_losses and val_losses do not coincide.")
@@ -75,8 +75,8 @@ def main():
 #     plt.figure(figsize=(10, 6))
 
 #     # Plot training and validation loss
-#     plt.plot(epochs, train_losses, 'b-', label='Training Loss')
-#     plt.plot(epochs, val_losses, 'r-', label='Validation Loss')
+#     plt.plots(epochs, train_losses, 'b-', label='Training Loss')
+#     plt.plots(epochs, val_losses, 'r-', label='Validation Loss')
 
 #     # Add labels and legend
 #     plt.xlabel('Epoch')
@@ -88,11 +88,11 @@ def main():
 #     # Set y-axis to start from 0
 #     plt.ylim(bottom=0)
 
-#     # Save the plot to a file
+#     # Save the plots to a file
 #     plt.savefig(plot_path)
-#     plt.close()  # Close the plot to avoid displaying it
+#     plt.close()  # Close the plots to avoid displaying it
 
-#     print(f"Updated training plot saved to {plot_path}")
+#     print(f"Updated training plots saved to {plot_path}")
 
 def create_final_plots(history):
     """Create final detailed plots from history of  training/validation losses"""
@@ -103,7 +103,7 @@ def create_final_plots(history):
         raise ValueError("The length of train_loss and val_loss do not coincide.")
     plt.figure(figsize=(12, 8))
 
-    # Main loss plot
+    # Main loss plots
     plt.subplot(2, 1, 1)
     plt.plot(epochs, history['train_loss'][start_from:], 'b-', label='Training Loss')
     plt.plot(epochs, history['val_loss'][start_from:], 'r-', label='Validation Loss')

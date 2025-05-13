@@ -176,10 +176,10 @@ def main():
         print("node_loss:", node_loss)
 
 
-        # Create the 4-panel comparison plot
+        # Create the 4-panel comparison plots
         fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="./EXAMPLE_info/matrix_comparison_New_{i}.html")
 
-        # Display the plot
+        # Display the plots
         fig.show()
 if __name__ == "__main__":
     main()

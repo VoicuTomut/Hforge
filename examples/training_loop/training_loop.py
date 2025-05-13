@@ -167,7 +167,7 @@ def main():
         original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
         fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path=f"{exp_path}/matrix_comparison_New_train.html")
 
-        # Display the plot
+        # Display the plots
         fig.show()
 
         # Get a sample from trsin set
@@ -202,7 +202,7 @@ def main():
         fig = plot_comparison_matrices(original_h * 100, predicted_h,
                                        save_path=f"{exp_path}/matrix_comparison_New_val.html")
 
-        # Display the plot
+        # Display the plots
         fig.show()
 
     print("\nTraining completed successfully!")

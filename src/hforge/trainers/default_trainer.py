@@ -182,7 +182,7 @@ class Trainer:
         return avg_loss, {"edge_loss": avg_edge_loss, "node_loss": avg_node_loss}
 
     def update_plot_learning_rate(self):
-        """Update the live plot with new loss values"""
+        """Update the live plots with new loss values"""
         start_from = 0
 
         epochs = range(len(self.history["train_loss"]))[start_from:]
@@ -212,12 +212,12 @@ class Trainer:
         plt.grid(True)
         plt.yscale('log')
 
-        # Save the plot to a file
+        # Save the plots to a file
         plt.tight_layout()
         plt.savefig(self.plot_path)
         plt.close()
 
-        print(f"Updated training plot saved to {self.plot_path}")
+        print(f"Updated training plots saved to {self.plot_path}")
 
     def update_plot(self, start_from=0):
         """Create final detailed plots from history of training/validation losses"""
@@ -227,7 +227,7 @@ class Trainer:
             raise ValueError("The length of train_loss and val_loss do not coincide.")
         plt.figure(figsize=(12, 8))
 
-        # Main loss plot
+        # Main loss plots
         plt.subplot(2, 1, 1)
         plt.plot(epochs, self.history['train_loss'][start_from:], 'b-', label='Training Loss')
         plt.plot(epochs, self.history['val_loss'][start_from:], 'r-', label='Validation Loss')
@@ -374,7 +374,7 @@ class Trainer:
                 self.experiment.log_metric("learning_rate", current_lr, epoch=epoch)
                 self.experiment.log_metric("epoch_time", epoch_time, epoch=epoch)
 
-            # Update live plot
+            # Update live plots
             if self.live_plot and (epoch % self.plot_update_freq == 0 or epoch == num_epochs - 1):
                 self.update_plot()
                 self.update_plot_learning_rate()
@@ -429,7 +429,7 @@ class Trainer:
                 if self.use_comet:
                     self.experiment.log_model("best_model_validation", save_path)
 
-        # Final plot update
+        # Final plots update
         if self.live_plot:
             self.update_plot()
             # self.create_final_plots()

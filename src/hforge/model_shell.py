@@ -152,6 +152,13 @@ class ModelShell(torch.nn.Module):
 
         # Eliminate self loops from edges:
         model_results["edge_index"] , model_results["edge_description"] = remove_self_loops(model_results["edge_index"], model_results["edge_description"])
+        # print("model_results.keys()= ", model_results.keys()) # dict_keys(['edge_index', 'edge_description', 'node_description'])
+        # print("model_results[edge_index].shape]= ", model_results["edge_index"].shape)
+        # print("model_results[edge_description].shape]= ", model_results["edge_description"].shape)
+        # print("model_results[node_description].shape]= ", model_results["node_description"].shape)
+        # print("graph_data.keys()= ", graph_data.keys())
+        # print("graph_data[pos].shape= ", graph_data["pos"].shape)
+        # print("graph_data[h_on_sites].shape= ", graph_data["h_on_sites"].shape)
 
         return model_results
 

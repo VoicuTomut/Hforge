@@ -36,7 +36,7 @@ def main():
         train_loss_pred, train_component_losses = loss_fn(output_graph, target_graph)
 
     # Extract hamiltonians
-    input_h = reconstruct_matrix(input_graph["h_hop"], input_graph["h_on_sites"], output_graph["edge_index"])
+    input_h = reconstruct_matrix(target_graph["h_hop"], target_graph["h_on_sites"], target_graph["edge_index"])
     predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
 
     # === Print the comparison ===

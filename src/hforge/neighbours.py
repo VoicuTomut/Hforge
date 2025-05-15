@@ -5,80 +5,88 @@ https://github.com/ACEsuit/mace/blob/main/mace/data/neighborhood.py
 
 
 from typing import Optional, Tuple
-
 import numpy as np
 from matscipy.neighbours import neighbour_list
 
 
 def get_neighborhood(
-    positions: np.ndarray,  # [num_positions, 3]
+    positions: np.ndarray,
     cutoff: float,
-    pbc: Optional[Tuple[bool, bool, bool]] = None, # Periodic Boundary Conditions
-    cell: Optional[np.ndarray] = None,  # [3, 3]
-    true_self_interaction=False,
+    pbc: Optional[Tuple[bool, bool, bool]] = None,
+    cell: Optional[np.ndarray] = None,
+    true_self_interaction: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
+    Compute neighbor list for atoms within a given cutoff, accounting for periodic boundary conditions (PBC),
+    using the neighbour_list function from matscipy.
 
     Args:
-        positions: The 3D positions of the atoms [nr_atoms, 3]
-        cutoff: Cutoff radius
-        pbc: ?
-        cell: The lattice vectors of the atoms [nr_atoms, 3]. Default is canonical basis.
-        true_self_interaction:
+        positions (np.ndarray): Cartesian coordinates of atoms [num_atoms, 3].
+        cutoff (float): Cutoff radius for neighbor search.
+        pbc (Tuple[bool, bool, bool], optional): Periodic Boundary Conditions flags for x, y, z directions. Defaults to (False, False, False).
+        cell (np.ndarray, optional): 3x3 lattice matrix. If None or zero, defaults to identity matrix.
+        true_self_interaction (bool, optional): If False, removes self-edges that do not involve periodic images.
 
     Returns:
-
+        Tuple[
+            np.ndarray,  # edge_index: [2, num_edges], atom pair indices (i->j)
+            np.ndarray,  # shifts: [num_edges, 3], displacement vectors for neighbors
+            np.ndarray,  # unit_shifts: [num_edges, 3], integer periodic image shifts
+            np.ndarray   # cell: 3x3 lattice matrix (possibly modified)
+        ]
     """
+    # Default to no periodic boundary conditions
     if pbc is None:
         pbc = (False, False, False)
 
-    if cell is None or cell.any() == np.zeros((3, 3)).any():
+    # Default to identity matrix if cell is None or zero
+    if cell is None or np.allclose(cell, 0):
         cell = np.identity(3, dtype=float)
 
-    assert len(pbc) == 3 and all(isinstance(i, (bool, np.bool_)) for i in pbc)
+    assert len(pbc) == 3 and all(isinstance(flag, (bool, np.bool_)) for flag in pbc)
     assert cell.shape == (3, 3)
 
-    pbc_x = pbc[0]
-    pbc_y = pbc[1]
-    pbc_z = pbc[2]
     identity = np.identity(3, dtype=float)
-    max_positions = np.max(np.absolute(positions)) + 1
-    # Extend cell in non-periodic directions
-    # For models with more than 5 layers, the multiplicative constant needs to be increased.
-    # temp_cell = np.copy(cell)
-    if not pbc_x:
-        cell[0, :] = max_positions * 5 * cutoff * identity[0, :]
-    if not pbc_y:
-        cell[1, :] = max_positions * 5 * cutoff * identity[1, :]
-    if not pbc_z:
-        cell[2, :] = max_positions * 5 * cutoff * identity[2, :]
+    max_positions = np.max(np.abs(positions)) + 1
 
+    # Extend non-periodic directions of the cell to avoid missing neighbors at the edges
+    for dim, periodic in enumerate(pbc):
+        if not periodic:
+            cell[dim, :] = max_positions * 5 * cutoff * identity[dim, :]
+
+    # Compute the neighbor list with unit cell shifts
+    # print("pbc= ", pbc)
+    # print("cell.shape= ", cell.shape)
+    # print("cell= ", cell)
+    # print("positions.shape= ", positions.shape)
+    # print("cutoff= ", cutoff)
     sender, receiver, unit_shifts = neighbour_list(
-        quantities="ijS",
+        "ijS",
         pbc=pbc,
         cell=cell,
         positions=positions,
         cutoff=cutoff,
-        # self_interaction=True,  # we want edges from atom to itself in different periodic images
-        # use_scaled_positions=False,  # positions are not scaled positions
     )
+    # print("\nsender= ", sender)
+    # print("receiver= ", receiver)
+    # print("unit_shifts.shape= ", unit_shifts.shape)
+    # print("unit_shifts= ", unit_shifts)
 
+    # Remove self-edges that are not across periodic boundaries
     if not true_self_interaction:
-        # Eliminate self-edges that don't cross periodic boundaries
-        true_self_edge = sender == receiver
-        true_self_edge &= np.all(unit_shifts == 0, axis=1)
-        keep_edge = ~true_self_edge
+        self_edges = (sender == receiver)
+        no_shift = np.all(unit_shifts == 0, axis=1)
+        mask = ~(self_edges & no_shift)
 
-        # Note: after eliminating self-edges, it can be that no edges remain in this system
-        sender = sender[keep_edge]
-        receiver = receiver[keep_edge]
-        unit_shifts = unit_shifts[keep_edge]
+        sender = sender[mask]
+        receiver = receiver[mask]
+        unit_shifts = unit_shifts[mask]
 
-    # Build output
-    edge_index = np.stack((sender, receiver))  # [2, n_edges]
+    # Pair indices for neighbor edges
+    edge_index = np.stack((sender, receiver), axis=0)
 
-    # From the docs: With the shift vector S, the distances D between atoms can be computed from
-    # D = positions[j]-positions[i]+S.dot(cell)
-    shifts = np.dot(unit_shifts, cell)  # [n_edges, 3]
+    # Convert unit cell shifts to real-space displacement vectors
+    shifts = np.dot(unit_shifts, cell)
 
     return edge_index, shifts, unit_shifts, cell
+

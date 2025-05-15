@@ -153,4 +153,7 @@ def graph_from_row(row,orbitals, cutoff=3.0):
                              s_on_sites=s_on_sites,
                              s_hop=s_hop)
 
+    # print("row_graph[h_on_sites].shape= ", row_graph["h_on_sites"].shape)
+    # print("row_graph[h_hop].shape= ", row_graph["h_hop"].shape)
+
     return row_graph

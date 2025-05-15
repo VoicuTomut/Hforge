@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+#! Quick fix
+from hforge.plots.plot_matrix import reconstruct_matrix, plot_matrices_true_prediction_difference
+from hforge.utils import create_directory
+
 try:
     from comet_ml import Experiment
 
@@ -100,7 +104,7 @@ class Trainer:
             # Forward pass
             pred_graph = self.model(batch)
 
-            # Create target graph
+            # Create target graph that we want to reach (different from input graph, just with the things we want the model to learn)
             target_graph = {
                 "edge_index": pred_graph["edge_index"],
                 "edge_description": batch.h_hop,
@@ -378,6 +382,28 @@ class Trainer:
             if self.live_plot and (epoch % self.plot_update_freq == 0 or epoch == num_epochs - 1):
                 self.update_plot()
                 self.update_plot_learning_rate()
+
+                #! Quick fix:
+                self.model.eval()
+                with torch.no_grad():
+                    for i, batch in enumerate(self.train_loader):
+                        if i % 1 == 0:
+                            output_graph = self.model(batch)
+                            target_graph = {
+                                "edge_index": output_graph["edge_index"],
+                                "edge_description": batch.h_hop,
+                                "node_description": batch.h_on_sites
+                            }
+
+
+                            predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
+                            original_h = reconstruct_matrix(target_graph["edge_description"], target_graph["node_description"], output_graph["edge_index"])
+
+                            results_directory = self.training_info_path + "/" + "hamiltonians_epoch_" + str(epoch+1)
+                            create_directory(results_directory)
+                            plot_matrices_true_prediction_difference(original_h.cpu().numpy(), predicted_h.cpu().numpy()/100, path=f"{results_directory}/hamiltonian_{i}.png", label="Hamiltonian")
+                            a
+
 
             # Save periodic checkpoint (every 50 epochs)
             if epoch % 50 == 0 and epoch > 0:

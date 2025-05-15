@@ -55,7 +55,7 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, cutoff=4.0, max_sam
 
     # Split into train and validation
     # First shuffle the dataset, but always keep the same seed for reproducibility
-    random.Random(4).shuffle(graph_dataset)
+    #! random.Random(4).shuffle(graph_dataset)
     # Then split it
     split_idx = int(len(graph_dataset) * split_ratio)
     train_dataset = graph_dataset[:split_idx]
@@ -83,7 +83,7 @@ def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1):
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False, #! Ojo
         pin_memory=True,
         collate_fn=custom_collate
     )

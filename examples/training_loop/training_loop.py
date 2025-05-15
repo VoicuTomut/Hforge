@@ -70,7 +70,7 @@ def main():
     )
 
     # Create the dataloaders
-    train_loader, val_loader = prepare_dataloaders(train_dataset, val_dataset, batch_size=config["batch_size"])
+    train_loader, val_loader = prepare_dataloaders(train_dataset, val_dataset, batch_size=dataset_config["batch_size"])
 
     # === Model Configuration ===
     model_config = config["model"]

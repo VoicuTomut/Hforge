@@ -388,6 +388,7 @@ class Trainer:
                 with torch.no_grad():
                     for i, batch in enumerate(self.train_loader):
                         if i % 1 == 0:
+                            batch = batch.to(self.device)
                             output_graph = self.model(batch)
                             target_graph = {
                                 "edge_index": output_graph["edge_index"],
@@ -402,7 +403,7 @@ class Trainer:
                             results_directory = self.training_info_path + "/" + "hamiltonians_epoch_" + str(epoch+1)
                             create_directory(results_directory)
                             plot_matrices_true_prediction_difference(original_h.cpu().numpy(), predicted_h.cpu().numpy()/100, path=f"{results_directory}/hamiltonian_{i}.png", label="Hamiltonian")
-                            a
+
 
 
             # Save periodic checkpoint (every 50 epochs)

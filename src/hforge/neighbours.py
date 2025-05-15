@@ -13,10 +13,22 @@ from matscipy.neighbours import neighbour_list
 def get_neighborhood(
     positions: np.ndarray,  # [num_positions, 3]
     cutoff: float,
-    pbc: Optional[Tuple[bool, bool, bool]] = None,
+    pbc: Optional[Tuple[bool, bool, bool]] = None, # Periodic Boundary Conditions
     cell: Optional[np.ndarray] = None,  # [3, 3]
     true_self_interaction=False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+
+    Args:
+        positions: The 3D positions of the atoms [nr_atoms, 3]
+        cutoff: Cutoff radius
+        pbc: ?
+        cell: The lattice vectors of the atoms [nr_atoms, 3]. Default is canonical basis.
+        true_self_interaction:
+
+    Returns:
+
+    """
     if pbc is None:
         pbc = (False, False, False)
 

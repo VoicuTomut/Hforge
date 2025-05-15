@@ -6,9 +6,8 @@ import os
 import yaml
 
 # Local application imports
-from hforge.model_shell import ModelShell
 from hforge.utils import prepare_dataset, prepare_dataloaders
-from hforge.utils import get_object_from_module
+from hforge.model_shell import ModelShell
 
 
 def load_model(model, optimizer=None, path="best_model.pt", device='cpu'):
@@ -61,6 +60,8 @@ def load_model_and_dataset_from_directory(directory: str, model_filename: str, w
     Returns:
 
     """
+    # === Lazy import to avoid circular import error ===
+    from hforge.utils import get_object_from_module
     # === Load configuration ===
     with open(directory + r"\training_config.yaml", "r") as f:
         config = yaml.safe_load(f)

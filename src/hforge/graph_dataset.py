@@ -102,10 +102,17 @@ class AtomicGraphDataset(Dataset):
 
 def graph_from_row(row,orbitals, cutoff=3.0):
     # Now let's pass it tru mace:
+
+    # print(row.keys())
+    # print("row[nr_atoms]: ", row["nr_atoms"])
+    # Get the atomic positions
     positions = np.array(row["atomic_positions"])
-    # print("positions.shape:", positions.shape)
+    # print("positions.shape:", positions.shape) # [nr_atoms, 3]; each atom has 3D position
+
+    # Get the cell (described by the lattice vectors)
     cell = np.array(row["lattice_vectors"])
-    # print("cell.shape:", cell.shape)
+    # print("cell.shape:", cell.shape) # [3,3]; 3 lattice vectors that are 3D.
+
     edge_index, shifts, unit_shifts, cell = get_neighborhood(positions=positions,
                                                              cutoff=cutoff,
                                                              pbc=(True, True, True),

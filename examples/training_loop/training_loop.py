@@ -15,7 +15,7 @@ except ImportError:
     COMET_AVAILABLE = False
     print("Comet ML not installed. Experiment tracking will be disabled.")
 
-from hforge.utils import prepare_dataset, load_model
+from hforge.utils import prepare_dataset, load_model, prepare_dataloaders
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
 from hforge.graph_costfucntion import  mse_cost_function, scale_dif_cost_function
@@ -59,15 +59,18 @@ def main():
     orbitals = config["orbitals"]
 
     # TODO: Better? to, instead of keeping all the dataset loaded in memory, first save the conversion to graph in the disk and then load it from there. But we will then have to keep all the graphs loaded anyways! How can we do better?
-    train_loader, val_loader = prepare_dataset(
+    # Convert the data into graphs dataset
+    train_dataset, val_dataset = prepare_dataset(
         dataset_path=dataset_config["path"],
         orbitals=orbitals,
         split_ratio=dataset_config["split_ratio"],
-        batch_size=dataset_config["batch_size"],
         cutoff=dataset_config["cutoff"],
         max_samples=dataset_config["max_samples"],
         load_other_nr_atoms=dataset_config["load_other_nr_atoms"]
     )
+
+    # Create the dataloaders
+    train_loader, val_loader = prepare_dataloaders(train_dataset, val_dataset, batch_size=config["batch_size"])
 
     # === Model Configuration ===
     model_config = config["model"]

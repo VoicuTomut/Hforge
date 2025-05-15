@@ -65,6 +65,7 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 - [ ] Benchmark with other H generating codes (Ange) (maybe around middle of april)
 - [ ] Investigate if training on 32 atoms can generalize to 64 atoms (similar to 8→32 generalization) ?
 - [ ] Try other PyTorch graph layers to se improve performance ?
+- [ ] Figure out why, when startig training an already trained model, it does not resume the same loss value.
 - -------------------------------------------------------- (from  21 aprilie)
 - [ ] Use E3NN for onsite and hopping extractions
 - [ ] Implement mixed training approach

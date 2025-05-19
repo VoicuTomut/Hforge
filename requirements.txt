@@ -12,3 +12,4 @@ torchmetrics
 h5py
 plotly
 prettytable
+matplotlib

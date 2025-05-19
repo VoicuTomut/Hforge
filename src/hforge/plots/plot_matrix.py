@@ -6,6 +6,7 @@ import torch
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 
@@ -266,138 +267,96 @@ def reconstruct_matrix(hop, onsite, reduce_edge_index):
 
     return full_matrix
 
-# Temporal, Angel:
-def plot_matrices_true_prediction_difference(M_true, M_pred, label='', path=''):
-    '''
-    Plot the true matrix, the predicted matrix and the difference between both matrices.
-    Aimed to study the Hamiltonian matrices and overlap matrices predictions.
+def plot_error_matrices(true_matrix, predicted_matrix, label=None, path=''):
+    """Docstring"""
+
+    matrices = [true_matrix, predicted_matrix]
+
+    # Set titles
+    if label is None:
+        label = ''
+    titles = ["True " + label, "Predicted " + label]
+
+    # === Error matrices computation ===
+
+    # Absolute error matrix
+    absolute_error_matrix = true_matrix - predicted_matrix
+
+    # Relative error matrix (in %): e_rel = e_abs / x
+    # // Avoid division by zero and ensure stability
+    # // epsilon = np.finfo(float).eps  # Smallest positive number
+    # // true_matrix = np.where(true_matrix == 0, epsilon, true_matrix)  # Replace zeros with epsilon
+    # // relative_error_matrix = absolute_error_matrix / true_matrix
+    epsilon = 1 # * Define your resolution here.
+    relative_error_matrix = absolute_error_matrix / (true_matrix + epsilon) # Sum epsilon to avoid divergences
+
+    # // Optionally, clip extreme values to prevent overflow or underflow
+    # // relative_error_matrix = np.clip(relative_error_matrix, -1e100, 1e100)
     
-    Parameters
-    ----------
-    M_true : np.ndarray
-        The true matrix.
-    M_pred : np.ndarray
-        The predicted matrix.
-    label : str
-        The label of the matrix to display in the title.
-    '''
-    import matplotlib.pyplot as plt
-    import numpy as np
+    # === Plots ===
 
-    matrices = [M_true, M_pred]
-
-    # Compute the difference matrix (in %)
-    M_diff = M_true - M_pred
-
-    # Avoid division by zero and ensure stability
-    epsilon = np.finfo(float).eps  # Smallest positive number
-    M_true = np.where(M_true == 0, epsilon, M_true)  # Replace zeros with epsilon
-    M_diff_relative = M_diff / M_true
-
-    # Optionally, clip extreme values to prevent overflow or underflow
-    M_diff_relative = np.clip(M_diff_relative, -1e100, 1e100)
-    
-    #############################
-
-    # Plot the true matrix, the predicted matrix.
-    fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
     cmap_string = 'RdYlBu'
-    vmin = np.min([np.min(M_true), np.min(M_pred)])
-    vmax = np.max([np.max(M_true), np.max(M_pred)])
+    vmin = np.min([np.min(true_matrix), np.min(predicted_matrix)])
+    vmax = np.max([np.max(true_matrix), np.max(predicted_matrix)])
     
     # Put the zero in the middle of the colorbar
-    vmax_absolute = np.max([np.abs(vmin), np.abs(vmax)])
+    cbar_limit = np.max([np.abs(vmin), np.abs(vmax)])
 
+    # Plot the true and predicted matrices.
     for i, matrix in enumerate(matrices):
-        image = axes[i].imshow(matrix, cmap=cmap_string, vmin=-vmax_absolute, vmax=vmax_absolute)#, extent=[-matrix.shape[1]//2, matrix.shape[1]//2, -matrix.shape[0]//2, matrix.shape[0]//2])
+        image = axes.flat[i].imshow(matrix, cmap=cmap_string, vmin=-cbar_limit, vmax=cbar_limit)
 
-        # axes[i].set_xlabel("x")
-        # axes[i].set_ylabel("y")
+        axes.flat[i].set_title(titles[i])
 
-        titles = ["True " + label, "Predicted " + label]
-        axes[i].set_title(titles[i])
-        axes[i].xaxis.tick_top()
+        cbar = fig.colorbar(image, shrink=0.81)
+        cbar.ax.set_title('eV')
 
-        cbar = fig.colorbar(image)
-        cbar.ax.set_title('Ev')
-
-    #############################
-
-    # Plot the difference matrix
-    vmin = np.min(M_diff_relative)
-    vmax = np.max(M_diff_relative)
-    vmax_absolute = np.max([np.abs(vmin), np.abs(vmax)])
-
-    max_error = 100
-    if vmax_absolute>max_error:
-        image = axes[2].imshow(M_diff_relative, cmap=cmap_string,  vmin=-max_error, vmax=max_error)#, extent=[-matrix.shape[1]//2, matrix.shape[1]//2, -matrix.shape[0]//2, matrix.shape[0]//2])
-    else:
-        image = axes[2].imshow(M_diff_relative, cmap=cmap_string,  vmin=-vmax_absolute, vmax=vmax_absolute)#, extent=[-matrix.shape[1]//2, matrix.shape[1]//2, -matrix.shape[0]//2, matrix.shape[0]//2])
-    axes[2].set_title('Relative error (M-M\')/M')
-    cbar = fig.colorbar(image)
-    cbar.ax.set_title('%')
-
-    # Plot the max and min
-    max_diff = np.max(M_diff_relative)
-    min_diff = np.min(M_diff_relative)
-    axes[2].text(0.5, -0.1, f'max = {max_diff:.2f},  min = {min_diff:.2f}', ha='center', va='center', transform=axes[2].transAxes, fontsize=12)
-    axes[2].xaxis.tick_top()
-
-    if path=="":
-        plt.show()
-    else:
-        plt.savefig(path)
-
-    plt.close(fig)
 
     #=== Abolute error and Relative error ===
-    fig, axes = plt.subplots(1, 2, figsize=(10, 10))
 
-    #=== Absolute error ===
+    # === Absolute error ===
     # Set the colorbar range
-    vmin = np.min(M_diff)
-    vmax = np.max(M_diff)
-    vmax_absolute = np.max([np.abs(vmin), np.abs(vmax)])
+    vmin = np.min(absolute_error_matrix)
+    vmax = np.max(absolute_error_matrix)
+    cbar_limit = np.max([np.abs(vmin), np.abs(vmax)])
 
-    # Plot the image
-    image = axes[0].imshow(M_diff, cmap=cmap_string, vmin=-vmax_absolute, vmax=vmax_absolute)
+    axes.flat[2].set_title('Absolute error (M-M\')')
 
-    # Title and colorbar
-    axes[0].set_title('Absolute error (M-M\')')
-    cbar = fig.colorbar(image)
+    image = axes.flat[2].imshow(absolute_error_matrix, cmap=cmap_string, vmin=-cbar_limit, vmax=cbar_limit)
+
+    cbar = fig.colorbar(image, shrink=0.81)
     cbar.ax.set_title('eV')
 
     # Plot the max and min
-    max_diff = np.max(M_diff)
-    min_diff = np.min(M_diff)
-    axes[0].text(0.5, -0.1, f'max = {max_diff:.2f},  min = {min_diff:.2f}', ha='center', va='center', transform=axes[0].transAxes, fontsize=12)
-    axes[0].xaxis.tick_top()
+    max_diff = np.max(absolute_error_matrix)
+    min_diff = np.min(absolute_error_matrix)
+    axes.flat[2].text(0.5, -0.1, f'max = {max_diff:.2f},  min = {min_diff:.2f}', ha='center', va='center', transform=axes.flat[2].transAxes, fontsize=12)
 
-    #=== Relative error ===
+    # === Relative error ===
+
     # Set the colorbar range
-    vmin = np.min(M_diff_relative)
-    vmax = np.max(M_diff_relative)
-    vmax_absolute = np.max([np.abs(vmin), np.abs(vmax)])
-
-    # Plot the image
     max_error = 100
-    if vmax_absolute>max_error:
-        image = axes[1].imshow(M_diff_relative, cmap=cmap_string,  vmin=-max_error, vmax=max_error)
-    else:
-        image = axes[1].imshow(M_diff_relative, cmap=cmap_string,  vmin=-vmax_absolute, vmax=vmax_absolute)
+
+    image = axes.flat[3].imshow(relative_error_matrix, cmap=cmap_string,  vmin=-max_error, vmax=max_error)
 
     # Title and colorbar
-    axes[1].set_title('Relative error (M-M\')/M')
-    cbar = fig.colorbar(image)
+    axes.flat[3].set_title(f'Relative error (M-M\')/(M+{epsilon})')
+    cbar = fig.colorbar(image, shrink=0.81)
     cbar.ax.set_title('%')
 
-    # Plot the max and min
-    axes[1].xaxis.tick_top()
+    # === Global plot config ===
+    for i in range(4):
+        axes.flat[i].set_xlabel("Matrix element")
+        axes.flat[i].set_ylabel("Matrix element")
+        axes.flat[i].xaxis.tick_top()
+        axes.flat[i].xaxis.set_label_position("top")
 
-    #=== Save figure ===
-    if path=="":
+
+    # === Save figure ===
+    if path is None:
         plt.show()
     else:
-        plt.savefig(path.replace('.png', '_errors.png'))
+        plt.savefig(path)
 
     plt.close(fig)

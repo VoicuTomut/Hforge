@@ -12,7 +12,7 @@ import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 #! Quick fix
-from hforge.plots.plot_matrix import reconstruct_matrix, plot_matrices_true_prediction_difference
+from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices
 from hforge.utils import create_directory
 
 try:
@@ -402,7 +402,7 @@ class Trainer:
 
                             results_directory = self.training_info_path + "/" + "hamiltonians_epoch_" + str(epoch+1)
                             create_directory(results_directory)
-                            plot_matrices_true_prediction_difference(original_h.cpu().numpy(), predicted_h.cpu().numpy()/100, path=f"{results_directory}/hamiltonian_{i}.png", label="Hamiltonian")
+                            plot_error_matrices(original_h.cpu().numpy(), predicted_h.cpu().numpy() / 100, path=f"{results_directory}/hamiltonian_{i}.png", label="Hamiltonian")
 
 
 

@@ -4,7 +4,7 @@
 import torch
 
 # Local application imports
-from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix, plot_matrices_true_prediction_difference
+from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix, plot_error_matrices
 from hforge.utils import load_model_and_dataset_from_directory, create_directory
 
 # TODO: Write in the title the nr of atoms, if it's train or val sample and the minimum loss. 
@@ -13,7 +13,7 @@ def main():
     # === Load model ===
 
     # * Change the directory where the model is saved with its configuration .yaml file.
-    directory = r"C:\Users\angel\OneDrive - Universitat de Barcelona\1A. MASTER I\TFM\example_results\usetapprox\example_results_usetapprox_2mp_sharing"
+    directory = r"C:\Users\angel\OneDrive - Universitat de Barcelona\1A. MASTER I\TFM\example_results\usetapprox\usetapprox_2mp_sharing_resume"
     model_filename = "train_best_model.pt"
 
     model, _, train_dataset, validation_dataset = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
@@ -38,11 +38,11 @@ def main():
             original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
 
             # Plotly:
-            plot_comparison_matrices(original_h*100, predicted_h, save_path=f"{results_directory}/hamiltonian_{i}.html", want_png_percent_diff=False)
+            # plot_comparison_matrices(original_h*100, predicted_h, save_path=f"{results_directory}/hamiltonian_{i}.html", want_png_percent_diff=False)
 
             # Matplotlib:
-            plot_matrices_true_prediction_difference(original_h.cpu().numpy(), predicted_h.cpu().numpy()/100, path=f"{results_directory}/hamiltonian_{i}.png", label="Hamiltonian") # Multiplication *100 is needed because it is done like that in the cost function
-
+            plot_error_matrices(original_h.cpu().numpy(), predicted_h.cpu().numpy() / 100, path=f"{results_directory}/hamiltonian_{i}.png", label="Hamiltonian") # Multiplication *100 is needed because it is done like that in the cost function
+            a
             print("Generated plots ", i)
 
 

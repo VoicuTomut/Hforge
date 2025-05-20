@@ -256,6 +256,7 @@ class Trainer:
 
         # Begin training loop
         for epoch in range(num_epochs):
+            print(f"Beggining of epoch {epoch}")
             epoch_start = time.time()
 
             # Training phase
@@ -314,6 +315,7 @@ class Trainer:
 
             # === Plot hamiltonians while training ===
             if self.live_matrices_plot_freq is not None and (epoch % self.live_matrices_plot_freq == 0 or epoch == num_epochs - 1):
+                #! SOMETHING HERE MODIFIES THE DEVICE
 
                 # === Get a reproducible random subset of the datasets ===
                 train_subset_size = 20
@@ -337,6 +339,7 @@ class Trainer:
                 for j, dataset in enumerate(dataset_subsets):
                     dataset_type = ["training", "validation"]
                     for i, sample in enumerate(dataset):
+                        sample = sample.to(self.device)
                         output_graph = generate_prediction(self.model, sample)
                         target_graph = {
                             "edge_index": output_graph["edge_index"],
@@ -362,7 +365,7 @@ class Trainer:
                                             n_atoms=n_atoms,
                                             predicted_matrix_text=predicted_matrix_text
                                             )
-
+                print("Hamiltonian plots generated!")
 
             # Save periodic checkpoint (every 50 epochs)
             if epoch % 50 == 0 and epoch > 0:

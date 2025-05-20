@@ -123,7 +123,7 @@ def main():
         grad_clip_value=trainer_config["grad_clip_value"],
         history=history,
         training_info_path=exp_path,
-        live_matrices_plot_freq=5,
+        live_matrices_plot_freq=trainer_config["live_matrices_plot_freq"],
         train_dataset=train_dataset,
         validation_dataset=val_dataset,
         # TODO: Maybe it's a better idea to move all the dataloaders logic intor the Trainer class, instead of passing both datasets and dataloaders

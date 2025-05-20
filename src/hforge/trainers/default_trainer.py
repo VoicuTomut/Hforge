@@ -10,10 +10,13 @@ import torch
 import matplotlib.pyplot as plt
 import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import Subset
 
+from hforge.plots import plot_loss_from_history
 #! Quick fix
 from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices
-from hforge.utils import create_directory
+from hforge.utils import create_directory, prepare_dataset, load_model_and_dataset_from_directory, prepare_dataloaders, \
+    generate_prediction
 
 try:
     from comet_ml import Experiment
@@ -26,7 +29,7 @@ except ImportError:
 
 class Trainer:
     def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
-                 use_comet=False, live_plot=True, plot_update_freq=1,training_info_path="", lr_scheduler=None, grad_clip_value=1.0, history=None):
+                 use_comet=False, live_plot=True, plot_update_freq=1, training_info_path="", lr_scheduler=None, grad_clip_value=1.0, history=None, live_matrices_plot_freq=None, train_dataset=None, validation_dataset=None):
         """Initialize the Trainer class for training and validating a model.
         This class handles the training loop, validation, and logging of metrics.
 
@@ -44,16 +47,20 @@ class Trainer:
             lr_scheduler (_type_, optional): _description_. Defaults to None.
             grad_clip_value (float, optional): _description_. Defaults to 1.0.
             history (_type_, optional): _description_. Defaults to None.
+            live_matrices_plot_freq (bool, optional): _description_. Defaults to True.
         """
         self.model = model.to(device)
+        self.train_dataset = train_dataset
+        self.validation_dataset = validation_dataset
         self.train_loader = train_loader
         self.val_loader = val_loader
+
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.device = device
         self.best_val_loss = float('inf')
         self.best_train_loss = float('inf')
-        self.plot_path = f"{training_info_path}/training_plot_learning_rate.png"
+        # self.plot_path = f"{training_info_path}/training_plot_learning_rate.png"
         self.lr_scheduler = lr_scheduler
         self.grad_clip_value = grad_clip_value
         self.history = history
@@ -88,6 +95,8 @@ class Trainer:
             self.val_losses = []
             self.epochs = []
             self.learning_rates = []
+
+        self.live_matrices_plot_freq = live_matrices_plot_freq
 
     def train_epoch(self):
         """Run one epoch of training with gradient clipping for stability"""
@@ -184,87 +193,6 @@ class Trainer:
         avg_node_loss = total_node_loss / num_batches
 
         return avg_loss, {"edge_loss": avg_edge_loss, "node_loss": avg_node_loss}
-
-    def update_plot_learning_rate(self):
-        """Update the live plots with new loss values"""
-        start_from = 0
-
-        epochs = range(len(self.history["train_loss"]))[start_from:]
-        if len(epochs) != len(self.history["val_loss"][start_from:]):
-            raise ValueError("The length of train_loss and val_loss do not coincide.")
-
-        # Create a new figure
-        plt.figure(figsize=(12, 8))
-
-        # Plot training and validation loss
-        plt.subplot(2, 1, 1)
-        plt.plot(epochs, self.history['train_loss'][start_from:], 'b-', label='Training Loss')
-        plt.plot(epochs, self.history['val_loss'][start_from:], 'r-', label='Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.title('Training and Validation Loss')
-        plt.legend()
-        plt.grid(True)
-        plt.ylim(bottom=0)
-
-        # Plot learning rate
-        plt.subplot(2, 1, 2)
-        plt.plot(epochs, self.history['learning_rate'][start_from:], 'g-')
-        plt.xlabel('Epoch')
-        plt.ylabel('Learning Rate')
-        plt.title('Learning Rate Schedule')
-        plt.grid(True)
-        plt.yscale('log')
-
-        # Save the plots to a file
-        plt.tight_layout()
-        plt.savefig(self.plot_path)
-        plt.close()
-
-        print(f"Updated training plots saved to {self.plot_path}")
-
-    def update_plot(self, start_from=0):
-        """Create final detailed plots from history of training/validation losses"""
-
-        epochs = range(len(self.history["train_loss"]))[start_from:]
-        if len(epochs) != len(self.history["val_loss"][start_from:]):
-            raise ValueError("The length of train_loss and val_loss do not coincide.")
-        plt.figure(figsize=(12, 8))
-
-        # Main loss plots
-        plt.subplot(2, 1, 1)
-        plt.plot(epochs, self.history['train_loss'][start_from:], 'b-', label='Training Loss')
-        plt.plot(epochs, self.history['val_loss'][start_from:], 'r-', label='Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.title('Training and Validation Loss')
-        plt.legend()
-        plt.grid(True)
-
-        # Component losses
-        plt.subplot(2, 2, 3)
-        plt.plot(epochs, self.history['train_edge_loss'][start_from:], 'b-', label='Train Edge Loss')
-        plt.plot(epochs, self.history['val_edge_loss'][start_from:], 'r-', label='Val Edge Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Edge Loss')
-        plt.title('Edge Matrix Loss')
-        plt.legend()
-        plt.grid(True)
-
-        plt.subplot(2, 2, 4)
-        plt.plot(epochs, self.history['train_node_loss'][start_from:], 'b-', label='Train Node Loss')
-        plt.plot(epochs, self.history['val_node_loss'][start_from:], 'r-', label='Val Node Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Node Loss')
-        plt.title('Node Matrix Loss')
-        plt.legend()
-        plt.grid(True)
-
-        # TODO: Add flags where each data type training begins
-
-        plt.tight_layout()
-        plt.savefig(f'{self.training_info_path}/training_history.png')
-        plt.close()
 
     def check_for_plateau(self, val_loss, epoch):
         """Check if training has plateaued and adjust learning rate if needed"""
@@ -380,30 +308,60 @@ class Trainer:
 
             # Update live plots
             if self.live_plot and (epoch % self.plot_update_freq == 0 or epoch == num_epochs - 1):
-                self.update_plot()
-                self.update_plot_learning_rate()
+                # self.update_plot()
+                # self.update_plot_learning_rate()
+                plot_loss_from_history(self.history, self.training_info_path)
 
-                #! Quick fix:
-                self.model.eval()
-                with torch.no_grad():
-                    for i, batch in enumerate(self.train_loader):
-                        if i % 1 == 0:
-                            batch = batch.to(self.device)
-                            output_graph = self.model(batch)
-                            target_graph = {
-                                "edge_index": output_graph["edge_index"],
-                                "edge_description": batch.h_hop,
-                                "node_description": batch.h_on_sites
-                            }
+            # === Plot hamiltonians while training ===
+            if self.live_matrices_plot_freq is not None and (epoch % self.live_matrices_plot_freq == 0 or epoch == num_epochs - 1):
 
+                # === Get a reproducible random subset of the datasets ===
+                train_subset_size = 20
+                validation_subset_size = 20
 
-                            predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
-                            original_h = reconstruct_matrix(target_graph["edge_description"], target_graph["node_description"], output_graph["edge_index"])
+                torch.manual_seed(4)
+                train_subset_indices = torch.randperm(len(self.train_dataset))[:train_subset_size]
+                torch.manual_seed(4)
+                validation_subset_indices = torch.randperm(len(self.validation_dataset))[:validation_subset_size]
 
-                            results_directory = self.training_info_path + "/" + "hamiltonians_epoch_" + str(epoch+1)
-                            create_directory(results_directory)
-                            plot_error_matrices(original_h.cpu().numpy(), predicted_h.cpu().numpy() / 100, filepath=f"{results_directory}/hamiltonian_{i}.png", matrix_label="Hamiltonian")
+                train_dataset_subset = Subset(self.train_dataset, train_subset_indices)
+                valdiation_dataset_subset = Subset(self.validation_dataset, validation_subset_indices)
 
+                dataset_subsets = [train_dataset_subset, valdiation_dataset_subset]
+
+                # Create results directory
+                results_directory = self.training_info_path + "/" + "hamiltonian_plots_during_training"
+                create_directory(results_directory)
+
+                # === Plot all hamiltonians in the subset ===
+                for j, dataset in enumerate(dataset_subsets):
+                    dataset_type = ["training", "validation"]
+                    for i, sample in enumerate(dataset):
+                        output_graph = generate_prediction(self.model, sample)
+                        target_graph = {
+                            "edge_index": output_graph["edge_index"],
+                            "edge_description": sample.h_hop,
+                            "node_description": sample.h_on_sites
+                        }
+
+                        loss, _ = self.loss_fn(output_graph, target_graph)
+
+                        predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
+                        original_h = reconstruct_matrix(target_graph["edge_description"], target_graph["node_description"], output_graph["edge_index"])
+
+                        # === Plot ===
+                        filepath = f"{results_directory}/{dataset_type[j]}_sample_{i}_epoch_{epoch}.png"
+                        n_atoms = len(sample["x"])
+                        title = f"Results of sample {i} from {dataset_type[j]} dataset (seed 4). There are {n_atoms} in the unit cell."
+                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100\nMSE evaluation:     {loss:.2f} eV²·100"
+                        plot_error_matrices(original_h.cpu().numpy(),
+                                            predicted_h.cpu().numpy() / 100,
+                                            filepath=filepath,
+                                            matrix_label="Hamiltonian",
+                                            figure_title=title,
+                                            n_atoms=n_atoms,
+                                            predicted_matrix_text=predicted_matrix_text
+                                            )
 
 
             # Save periodic checkpoint (every 50 epochs)
@@ -439,6 +397,7 @@ class Trainer:
                 if self.use_comet:
                     self.experiment.log_model("best_model_training", save_path)
 
+            # TODO: Put save in a self function for best modularity
             # Save best model based on validation loss
             if save_path and val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
@@ -455,6 +414,19 @@ class Trainer:
 
                 if self.use_comet:
                     self.experiment.log_model("best_model_validation", save_path)
+
+        # Save last epoch
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': self.lr_scheduler.state_dict() if self.lr_scheduler else None,
+            'train_loss': train_loss,
+            'val_loss': val_loss,
+            'history': self.history
+        }, folder +"train_" +filename)
+        tsp =folder +"train_" +filename
+        print(f"Last model saved at epoch {epoch} to {tsp}")
 
         # Final plots update
         if self.live_plot:

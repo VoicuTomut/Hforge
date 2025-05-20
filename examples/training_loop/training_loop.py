@@ -15,10 +15,10 @@ except ImportError:
     COMET_AVAILABLE = False
     print("Comet ML not installed. Experiment tracking will be disabled.")
 
-from hforge.utils import prepare_dataset, load_model, prepare_dataloaders
+from hforge.utils import prepare_dataset, load_model, prepare_dataloaders, get_object_from_module
 from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
-from hforge.graph_costfucntion import  mse_cost_function, scale_dif_cost_function
+from hforge.graph_costfunction import  mse_cost_function, scale_dif_cost_function
 from hforge.trainers.default_trainer import Trainer
 import yaml
 import os
@@ -34,8 +34,6 @@ def save_to_yaml(data, path):
     with open(path, 'w') as file:
         yaml.dump(data, file, default_flow_style=False)
 
-COST_FN={"mse_cost_function":mse_cost_function,
-          "scale_dif_cost_function":scale_dif_cost_function}
 INTERACTION_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInteractionBlock}
 
 
@@ -60,10 +58,10 @@ def main():
 
     # TODO: Better? to, instead of keeping all the dataset loaded in memory, first save the conversion to graph in the disk and then load it from there. But we will then have to keep all the graphs loaded anyways! How can we do better?
     # Convert the data into graphs dataset
-    train_dataset, val_dataset = prepare_dataset(
+    train_dataset, val_dataset, _ = prepare_dataset(
         dataset_path=dataset_config["path"],
         orbitals=orbitals,
-        split_ratio=dataset_config["split_ratio"],
+        training_split_ratio=dataset_config["split_ratio"],
         cutoff=dataset_config["cutoff"],
         max_samples=dataset_config["max_samples"],
         load_other_nr_atoms=dataset_config["load_other_nr_atoms"]
@@ -107,7 +105,7 @@ def main():
     )
 
     # === Cost function ===
-    cost_function = COST_FN[config["cost_function"]["function"]]
+    cost_function = get_object_from_module(config["cost_function"]["function"], 'hforge.graph_costfunction')
 
     # === Trainer initialization ===
     trainer_config = config["trainer"]
@@ -124,7 +122,11 @@ def main():
         plot_update_freq=trainer_config["plot_update_freq"],
         grad_clip_value=trainer_config["grad_clip_value"],
         history=history,
-        training_info_path=exp_path
+        training_info_path=exp_path,
+        live_matrices_plot_freq=5,
+        train_dataset=train_dataset,
+        validation_dataset=val_dataset,
+        # TODO: Maybe it's a better idea to move all the dataloaders logic intor the Trainer class, instead of passing both datasets and dataloaders
     )
 
     # === Start training ===

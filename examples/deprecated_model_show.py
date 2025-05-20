@@ -72,10 +72,10 @@ def main():
         7: 13,
         8: 13,
     }
-    dataset, _ = prepare_dataset(
+    dataset, _, _ = prepare_dataset(
         dataset_path=dataset_path,
         orbitals=orbitals,
-        split_ratio=0.85,  # Slight increase in training data
+        training_split_ratio=0.85,  # Slight increase in training data
         batch_size=1,  # Increased batch size for better gradient estimates
         cutoff=3.0,
         max_samples=None  # Use full dataset for better training

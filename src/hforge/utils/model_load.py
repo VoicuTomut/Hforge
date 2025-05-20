@@ -10,6 +10,7 @@ from hforge.utils import prepare_dataset, prepare_dataloaders
 from hforge.model_shell import ModelShell
 
 
+#! DEPRECATED:
 def load_model(model, optimizer=None, path="best_model.pt", device='cpu'):
     """
     Load the best model checkpoint from the saved file
@@ -85,10 +86,10 @@ def load_model_and_dataset_from_directory(directory: str, model_filename: str, w
     # Loading the dataset is expensive, so first we check if we need it.
     if return_datasets or return_dataloaders:
         dataset_config = config["dataset"]
-        train_dataset, validation_dataset = prepare_dataset(
+        train_dataset, validation_dataset, _ = prepare_dataset(
             dataset_path=dataset_config["path"],
             orbitals=config["orbitals"],
-            split_ratio=dataset_config["split_ratio"],
+            training_split_ratio=dataset_config["split_ratio"],
             cutoff=dataset_config["cutoff"],
             max_samples=dataset_config["max_samples"],
             load_other_nr_atoms=dataset_config["load_other_nr_atoms"],

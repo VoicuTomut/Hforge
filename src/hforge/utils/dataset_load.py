@@ -2,8 +2,10 @@
 from hforge.graph_dataset import graph_from_row
 from datasets import load_from_disk, concatenate_datasets
 from torch_geometric.loader import DataLoader
+from torch import Generator
+from torch_geometric.data import Batch
 
-def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, cutoff=4.0, max_samples=None, load_other_nr_atoms=False):
+def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split_ratio = 0.5, cutoff=4.0, max_samples=None, load_other_nr_atoms=False):
     import os
     import random
     """
@@ -12,7 +14,8 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, cutoff=4.0, max_sam
     Args:
         dataset_path: Path to the dataset
         orbitals: Dictionary mapping atomic numbers to number of orbitals
-        split_ratio: Train/validation split ratio
+        training_split_ratio: Train/validation split ratio
+        test_split_ratio: Validation/Test split ratio
         batch_size: Batch size for dataloaders
         cutoff: Cutoff distance for graph construction
         max_samples: Maximum number of samples to load (for debugging)
@@ -56,36 +59,36 @@ def prepare_dataset(dataset_path, orbitals, split_ratio=0.8, cutoff=4.0, max_sam
     # Split into train and validation
     # First shuffle the dataset, but always keep the same seed for reproducibility
     random.Random(4).shuffle(graph_dataset)
+
     # Then split it
-    split_idx = int(len(graph_dataset) * split_ratio)
+    split_idx = int(len(graph_dataset) * training_split_ratio)
     train_dataset = graph_dataset[:split_idx]
     validation_dataset = graph_dataset[split_idx:]
-    print(f"Created {len(train_dataset)} training samples and {len(validation_dataset)} validation samples.")
 
-    return train_dataset, validation_dataset
+    split_idx = int(len(validation_dataset) * test_split_ratio)
+    test_dataset = validation_dataset[:split_idx]
+    validation_dataset = validation_dataset[split_idx:]
+    print(f"Created {len(train_dataset)} training samples, {len(validation_dataset)} validation samples and {len(test_dataset)} test samples.")
+
+    return train_dataset, validation_dataset, test_dataset
 
 
-def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1):
-    # Create data loaders with custom collate function
+def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1, seed=4, shuffle_train_dataloader=True):
+    # Set a manual seed for reproducibility
+    # generator = Generator()
+    # generator.manual_seed(seed)
 
-    # Custom collate function to ensure proper ordering of h and s matrices
+    # Custom collate function for batching graph data
     def custom_collate(batch):
-        from torch_geometric.data import Batch
-        batch = Batch.from_data_list(batch)
-
-        # Ensure h and s matrices are properly aligned
-        # This depends on your specific data structure, but might look like:
-        # Reorganize h_on_sites and s_on_sites if needed
-        # Reorganize h_hop and s_hop if needed
-
-        return batch
+        return Batch.from_data_list(batch)
 
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle_train_dataloader,
         pin_memory=True,
-        collate_fn=custom_collate
+        collate_fn=custom_collate,
+        # generator=generator
     )
 
     validation_loader = DataLoader(

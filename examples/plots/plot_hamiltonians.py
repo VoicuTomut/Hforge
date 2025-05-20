@@ -46,7 +46,7 @@ def main():
 
             # Compute loss
             loss_fn_name = config["cost_function"]["function"]
-            loss_fn = get_object_from_module(loss_fn_name, "hforge.graph_costfucntion")
+            loss_fn = get_object_from_module(loss_fn_name, "hforge.graph_costfunction")
             target_graph = {
                 "edge_index": output_graph["edge_index"],
                 "edge_description": sample_graph.h_hop,
@@ -63,7 +63,7 @@ def main():
             history_last_epoch = len(history.get("train_loss"))
 
             n_atoms = len(sample_graph["x"])
-            figure_title = f"Results of sample {i} from {dataset_type} dataset (seed: 4). {n_atoms} atoms in the unit cell."
+            figure_title = f"Results of sample {i} from {dataset_type} dataset (seed: 4). There are {n_atoms} atoms in the unit cell."
             # Plotly:
             # plot_comparison_matrices(original_h*100, predicted_h, save_path=f"{results_directory}/hamiltonian_{i}.html", want_png_percent_diff=False)
             filepath = f"{results_directory}/hamiltonian_{i}.html"

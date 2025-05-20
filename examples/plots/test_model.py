@@ -17,7 +17,7 @@ def main():
     loss_fn = get_object_from_module(loss_fn_name, "hforge.graph_costfucntion")
 
     # Load model
-    model, history , train_dataset, validation_dataset= load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
+    model, history , train_dataset, validation_dataset, _ = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
 
     # Generate predition
     i = 0

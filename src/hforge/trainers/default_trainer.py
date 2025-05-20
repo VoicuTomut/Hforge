@@ -402,7 +402,7 @@ class Trainer:
 
                             results_directory = self.training_info_path + "/" + "hamiltonians_epoch_" + str(epoch+1)
                             create_directory(results_directory)
-                            plot_error_matrices(original_h.cpu().numpy(), predicted_h.cpu().numpy() / 100, path=f"{results_directory}/hamiltonian_{i}.png", label="Hamiltonian")
+                            plot_error_matrices(original_h.cpu().numpy(), predicted_h.cpu().numpy() / 100, filepath=f"{results_directory}/hamiltonian_{i}.png", matrix_label="Hamiltonian")
 
 
 

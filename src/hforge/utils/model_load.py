@@ -96,11 +96,11 @@ def load_model_and_dataset_from_directory(directory: str, model_filename: str, w
 
         # Return the datasets or the dataloaders depending on what user wants.
         if return_datasets:
-            return model, history, train_dataset, validation_dataset
+            return model, history, train_dataset, validation_dataset, config
 
         if return_dataloaders:
             train_dataloader, validation_dataloader = prepare_dataloaders(train_dataset, validation_dataset, batch_size=dataset_config["batch_size"])
-            return model, history, train_dataloader, validation_dataloader
+            return model, history, train_dataloader, validation_dataloader, config
 
     # === Return only the model and the history if no dataset loading needed
-    return model, history
+    return model, history, config

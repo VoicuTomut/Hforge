@@ -15,7 +15,7 @@ def main():
     # === Load model ===
 
     # * Change the directory where the model is saved with its configuration .yaml file.
-    directory = r"C:\Users\angel\Documents\GitHub\Hforge\example_results\example_results_usetapprox_2mp_sharing_hplots"
+    directory = r"C:\Users\angel\Documents\GitHub\Hforge\example_results\hplots_usetapprox_2mp_sharing_resume_sumlossfn"
     model_filename = "train_best_model.pt"
 
     model, history, train_dataset, validation_dataset, config = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
@@ -23,7 +23,7 @@ def main():
     # === Generate prediction and plots ===
 
     # * Change results directory
-    results_directory = directory + "/" + "hamiltonian_plots"
+    results_directory = directory + "/" + "hamiltonian_plots_after_training"
 
     create_directory(results_directory)
 
@@ -75,6 +75,7 @@ def main():
                                             predicted_matrix_text=predicted_matrix_text,
                                             figure_title=figure_title,
                                             n_atoms=n_atoms,
+                                            absolute_error_cbar_limit=0.1
                                             )
 
             # Matplotlib:
@@ -87,6 +88,7 @@ def main():
                                 predicted_matrix_text=predicted_matrix_text,
                                 figure_title=figure_title,
                                 n_atoms=n_atoms,
+                                absolute_error_cbar_limit=0.1
                                 ) # Multiplication *100 is needed because it is done like that in the cost function
 
             print("Generated plots ", i)

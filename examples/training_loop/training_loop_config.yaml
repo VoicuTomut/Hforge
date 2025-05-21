@@ -1,5 +1,5 @@
 device: "cuda"
-exp_path: "example_results/hplots_usetapprox_2mp_sharing_resume_sumlossfn"
+exp_path: "example_results/hplots_usetapprox_2mp_sharing_resume_sumlossfn/resume_training"
 dataset:
   path: "./Data/aBN_HSX/nr_atoms_32"
   load_other_nr_atoms: true
@@ -19,7 +19,7 @@ orbitals:
   8: 13
 
 model:
-  path_trained_model: "example_results/example_results_usetapprox_2mp_sharing/train_best_model.pt"
+  path_trained_model: "example_results/hplots_usetapprox_2mp_sharing_resume_sumlossfn/train_best_model.pt"
   avg_num_neighbors: 8
   nr_bits: 10
 
@@ -97,21 +97,21 @@ model:
     share_parameters: true
 
 optimizer:
-  lr: 1e-3
+  lr: 1e-4
   weight_decay: 1e-5
 
 scheduler:
-  T_0: 15
+  T_0: 20
   T_mult: 2
   eta_min: 1e-15
 
 trainer:
   use_comet: false
   live_plot: true
-  plot_update_freq: 1
-  plot_matrices_freq: 50
+  plot_update_freq: 5
+  plot_matrices_freq: 100
   grad_clip_value: 0.1
-  num_epochs: 2000
+  num_epochs: 8000
   filename: "best_model.pt"
 
 cost_function:

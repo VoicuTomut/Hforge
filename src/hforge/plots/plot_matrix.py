@@ -267,7 +267,7 @@ def reconstruct_matrix(hop, onsite, reduce_edge_index):
 
     return full_matrix
 
-def plot_error_matrices(true_matrix, predicted_matrix, matrix_label=None, figure_title=None, predicted_matrix_text=None, filepath=None, n_atoms=None):
+def plot_error_matrices(true_matrix, predicted_matrix, matrix_label=None, figure_title=None, predicted_matrix_text=None, filepath=None, n_atoms=None, absolute_error_cbar_limit=None):
     """
     Saves as .png the plots of the true matrix, predicted matrix, absolute and relatives errors with additional stats.
 
@@ -299,9 +299,12 @@ def plot_error_matrices(true_matrix, predicted_matrix, matrix_label=None, figure
     cbar_limits = [np.max([np.abs(vmin), np.abs(vmax)])for _ in range(2)] # Put the zero in the middle of the colorbar
 
     # Compute the limits of the absolute error matrix:
-    vmin = np.min(absolute_error_matrix)
-    vmax = np.max(absolute_error_matrix)
-    cbar_limits.append(np.max([np.abs(vmin), np.abs(vmax)]))
+    if absolute_error_cbar_limit is None:
+        vmin = np.min(absolute_error_matrix)
+        vmax = np.max(absolute_error_matrix)
+        cbar_limits.append(np.max([np.abs(vmin), np.abs(vmax)]))
+    else:
+        cbar_limits.append(absolute_error_cbar_limit)
 
     # Compute the limits of the relative error matrix:
     max_error = 100.0 # %
@@ -384,7 +387,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-def plot_error_matrices_interactive(true_matrix, predicted_matrix, matrix_label=None, figure_title=None, predicted_matrix_text=None, filepath=None, n_atoms=None):
+def plot_error_matrices_interactive(true_matrix, predicted_matrix, matrix_label=None, figure_title=None, predicted_matrix_text=None, filepath=None, n_atoms=None, absolute_error_cbar_limit=None):
     """Interactive Plotly visualization of error matrices."""
 
     # === Error matrices computation ===
@@ -397,7 +400,11 @@ def plot_error_matrices_interactive(true_matrix, predicted_matrix, matrix_label=
     vmax = np.max([np.max(true_matrix), np.max(predicted_matrix)])
     lim_data = max(abs(vmin), abs(vmax))
 
-    lim_abs = np.max(np.abs(absolute_error_matrix))
+    if absolute_error_cbar_limit is None:
+        lim_abs = np.max(np.abs(absolute_error_matrix))
+    else:
+        lim_abs = absolute_error_cbar_limit
+
     lim_rel = 100.0  # %
 
     cbar_limits = [lim_data, lim_data, lim_abs, lim_rel]

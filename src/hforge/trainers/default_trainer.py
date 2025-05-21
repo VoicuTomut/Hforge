@@ -16,7 +16,7 @@ from hforge.plots import plot_loss_from_history
 #! Quick fix
 from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, plot_error_matrices_interactive
 from hforge.utils import create_directory, prepare_dataset, load_model_and_dataset_from_directory, prepare_dataloaders, \
-    generate_prediction, print_graph_device, print_data_loader_device
+    generate_prediction, print_graph_device, print_data_loader_device, get_stratified_indices
 
 try:
     from comet_ml import Experiment
@@ -330,11 +330,15 @@ class Trainer:
                 train_subset_size = 20
                 validation_subset_size = 20
 
-                # Generate random indices
-                torch.manual_seed(4)
-                train_subset_indices = torch.randperm(len(train_dataset))[:train_subset_size]
-                torch.manual_seed(4)
-                validation_subset_indices = torch.randperm(len(validation_dataset))[:validation_subset_size]
+                # # Generate random indices
+                # torch.manual_seed(4)
+                # train_subset_indices = torch.randperm(len(train_dataset))[:train_subset_size]
+                # torch.manual_seed(4)
+                # validation_subset_indices = torch.randperm(len(validation_dataset))[:validation_subset_size]
+
+                # Get the indices of 3 samples of each n_atoms
+                train_subset_indices = get_stratified_indices(train_dataset, samples_per_group=3, seed=4)
+                validation_subset_indices = get_stratified_indices(validation_dataset, samples_per_group=3, seed=4)
 
                 # Get the subset
                 train_dataset_subset = [train_dataset[i] for i in train_subset_indices]

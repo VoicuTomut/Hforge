@@ -106,3 +106,39 @@ def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1, seed=4,
         break
 
     return train_loader, validation_loader
+
+from collections import defaultdict
+import random
+import torch
+
+def get_stratified_indices(dataset, samples_per_group=3, seed=4):
+    """
+    Return indices of `samples_per_group` samples per unique n_atoms type in the dataset.
+
+    Args:
+        dataset: A list or torch Dataset of PyG Data objects
+        samples_per_group: Number of samples to return for each n_atoms group
+        seed: Random seed for reproducibility
+
+    Returns:
+        A list of selected indices
+    """
+    # Group indices by n_atoms
+    n_atoms_to_indices = defaultdict(list)
+    for idx, data in enumerate(dataset):
+        n_atoms = data.x.size(0)  # assuming x is node feature matrix
+        n_atoms_to_indices[n_atoms].append(idx)
+
+    # Set seed for reproducibility
+    random.seed(seed)
+
+    selected_indices = []
+    for n_atoms, indices in n_atoms_to_indices.items():
+        if len(indices) < samples_per_group:
+            print(f"Warning: Not enough samples for n_atoms={n_atoms}, only found {len(indices)}")
+            selected = indices  # take all if fewer than needed
+        else:
+            selected = random.sample(indices, samples_per_group)
+        selected_indices.extend(selected)
+
+    return selected_indices

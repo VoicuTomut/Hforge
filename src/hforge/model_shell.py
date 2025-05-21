@@ -57,6 +57,7 @@ def compute_mace_output_shape(config):
 
 
 class ModelShell(torch.nn.Module):
+    # ! Once the model is initialized, you cannot move it to a different device!
 
     def __init__(self, config_routine, device='cpu'):
         super(ModelShell, self).__init__()

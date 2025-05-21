@@ -1,5 +1,5 @@
-device: "cpu"
-exp_path: "example_results"
+device: "cuda"
+exp_path: "example_results/example_results_usetapprox_2mp_sharing_hplots"
 dataset:
   path: "./Data/aBN_HSX/nr_atoms_32"
   load_other_nr_atoms: true
@@ -77,8 +77,8 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
-    mp_layers: 1
-    share_parameters: false
+    mp_layers: 2
+    share_parameters: true
 
   node_extraction:
     node_extraction_class: NodeExtractionUniversalApproximator
@@ -93,8 +93,8 @@ model:
       8: 13
     hidden_dim_message_passing: 900
     hidden_dim_matrix_extraction: 900
-    mp_layers: 1
-    share_parameters: false
+    mp_layers: 2
+    share_parameters: true
 
 optimizer:
   lr: 1e-3
@@ -103,15 +103,16 @@ optimizer:
 scheduler:
   T_0: 15
   T_mult: 2
-  eta_min: 1e-11
+  eta_min: 1e-15
 
 trainer:
   use_comet: false
   live_plot: true
   plot_update_freq: 1
+  plot_matrices_freq: 50
   grad_clip_value: 0.1
-  num_epochs: 4000
+  num_epochs: 2000
   filename: "best_model.pt"
 
 cost_function:
-  function: mse_cost_function
+  function: mse_sum_cost_function

@@ -32,8 +32,8 @@ def mse_sum_cost_function(pred_graph, target_graph, scale_factor=100.0):
     total_loss = edge_weight * edge_loss + node_weight * node_loss
 
     # Detect extremely large values and clip
-    if total_loss > 1e10:
+    if total_loss > 1e12:
         print(f"Unusually large loss detected: {total_loss.item()}")
-        total_loss = torch.clamp(total_loss, max=1e10)
+        total_loss = torch.clamp(total_loss, max=1e12)
 
     return total_loss, {"edge_loss": edge_loss.item(), "node_loss": node_loss.item()}

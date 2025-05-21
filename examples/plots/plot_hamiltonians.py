@@ -15,7 +15,7 @@ def main():
     # === Load model ===
 
     # * Change the directory where the model is saved with its configuration .yaml file.
-    directory = r"C:\Users\angel\OneDrive - Universitat de Barcelona\1A. MASTER I\TFM\example_results\usetapprox\usetapprox_2mp_sharing_resume"
+    directory = r"C:\Users\angel\Documents\GitHub\Hforge\example_results\example_results_usetapprox_2mp_sharing_hplots"
     model_filename = "train_best_model.pt"
 
     model, history, train_dataset, validation_dataset, config = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)

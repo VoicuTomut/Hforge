@@ -14,9 +14,9 @@ from torch.utils.data import Subset
 
 from hforge.plots import plot_loss_from_history
 #! Quick fix
-from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices
+from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, plot_error_matrices_interactive
 from hforge.utils import create_directory, prepare_dataset, load_model_and_dataset_from_directory, prepare_dataloaders, \
-    generate_prediction
+    generate_prediction, print_graph_device, print_data_loader_device
 
 try:
     from comet_ml import Experiment
@@ -29,7 +29,7 @@ except ImportError:
 
 class Trainer:
     def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
-                 use_comet=False, live_plot=True, plot_update_freq=1, training_info_path="", lr_scheduler=None, grad_clip_value=1.0, history=None, live_matrices_plot_freq=None, train_dataset=None, validation_dataset=None):
+                 use_comet=False, live_plot=True, plot_update_freq=1, training_info_path="", lr_scheduler=None, grad_clip_value=1.0, history=None, plot_matrices_freq=None, config=None):
         """Initialize the Trainer class for training and validating a model.
         This class handles the training loop, validation, and logging of metrics.
 
@@ -47,11 +47,10 @@ class Trainer:
             lr_scheduler (_type_, optional): _description_. Defaults to None.
             grad_clip_value (float, optional): _description_. Defaults to 1.0.
             history (_type_, optional): _description_. Defaults to None.
-            live_matrices_plot_freq (bool, optional): _description_. Defaults to True.
+            plot_matrices_freq (bool, optional): _description_. Defaults to True.
         """
         self.model = model.to(device)
-        self.train_dataset = train_dataset
-        self.validation_dataset = validation_dataset
+        self.config = config
         self.train_loader = train_loader
         self.val_loader = val_loader
 
@@ -96,7 +95,7 @@ class Trainer:
             self.epochs = []
             self.learning_rates = []
 
-        self.live_matrices_plot_freq = live_matrices_plot_freq
+        self.plot_matrices_freq = plot_matrices_freq
 
     def train_epoch(self):
         """Run one epoch of training with gradient clipping for stability"""
@@ -256,7 +255,6 @@ class Trainer:
 
         # Begin training loop
         for epoch in range(num_epochs):
-            print(f"Beggining of epoch {epoch}")
             epoch_start = time.time()
 
             # Training phase
@@ -314,21 +312,33 @@ class Trainer:
                 plot_loss_from_history(self.history, self.training_info_path)
 
             # === Plot hamiltonians while training ===
-            if self.live_matrices_plot_freq is not None and (epoch % self.live_matrices_plot_freq == 0 or epoch == num_epochs - 1):
-                #! SOMETHING HERE MODIFIES THE DEVICE
+            if self.plot_matrices_freq is not None and (epoch % self.plot_matrices_freq == 0 or epoch == num_epochs - 1):
 
                 # === Get a reproducible random subset of the datasets ===
+                # Load the datasets
+                dataset_config = self.config["dataset"]
+                train_dataset, validation_dataset , _= prepare_dataset(
+                    dataset_path=dataset_config["path"],
+                    orbitals=self.config["orbitals"],
+                    training_split_ratio=dataset_config["split_ratio"],
+                    cutoff=dataset_config["cutoff"],
+                    max_samples=dataset_config["max_samples"],
+                    load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
+                    print_finish_message=False
+                )
+
                 train_subset_size = 20
                 validation_subset_size = 20
 
+                # Generate random indices
                 torch.manual_seed(4)
-                train_subset_indices = torch.randperm(len(self.train_dataset))[:train_subset_size]
+                train_subset_indices = torch.randperm(len(train_dataset))[:train_subset_size]
                 torch.manual_seed(4)
-                validation_subset_indices = torch.randperm(len(self.validation_dataset))[:validation_subset_size]
+                validation_subset_indices = torch.randperm(len(validation_dataset))[:validation_subset_size]
 
-                train_dataset_subset = Subset(self.train_dataset, train_subset_indices)
-                valdiation_dataset_subset = Subset(self.validation_dataset, validation_subset_indices)
-
+                # Get the subset
+                train_dataset_subset = [train_dataset[i] for i in train_subset_indices]
+                valdiation_dataset_subset = [validation_dataset[i] for i in validation_subset_indices]
                 dataset_subsets = [train_dataset_subset, valdiation_dataset_subset]
 
                 # Create results directory
@@ -356,8 +366,18 @@ class Trainer:
                         filepath = f"{results_directory}/{dataset_type[j]}_sample_{i}_epoch_{epoch}.png"
                         n_atoms = len(sample["x"])
                         title = f"Results of sample {i} from {dataset_type[j]} dataset (seed 4). There are {n_atoms} in the unit cell."
-                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100\nMSE evaluation:     {loss:.2f} eV²·100"
+                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100\nMSE evaluation:     {loss.item():.2f} eV²·100"
                         plot_error_matrices(original_h.cpu().numpy(),
+                                            predicted_h.cpu().numpy() / 100,
+                                            filepath=filepath,
+                                            matrix_label="Hamiltonian",
+                                            figure_title=title,
+                                            n_atoms=n_atoms,
+                                            predicted_matrix_text=predicted_matrix_text
+                                            )
+                        filepath = f"{results_directory}/{dataset_type[j]}_sample_{i}_epoch_{epoch}.html"
+                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100<br>MSE evaluation:     {loss.item():.2f} eV²·100"
+                        plot_error_matrices_interactive(original_h.cpu().numpy(),
                                             predicted_h.cpu().numpy() / 100,
                                             filepath=filepath,
                                             matrix_label="Hamiltonian",

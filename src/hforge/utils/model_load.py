@@ -71,7 +71,7 @@ def load_model_and_dataset_from_directory(directory: str, model_filename: str, w
     model_config = config["model"]
     model_config["atomic_descriptors"]["interaction_cls_first"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls_first"])
     model_config["atomic_descriptors"]["interaction_cls"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls"])
-    model = ModelShell(model_config).to(device)
+    model = ModelShell(model_config, device=device).to(device)
 
     # === Load the model ===
     model_filename = model_filename

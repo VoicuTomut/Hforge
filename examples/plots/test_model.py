@@ -17,7 +17,7 @@ def main():
     loss_fn = get_object_from_module(loss_fn_name, "hforge.graph_costfunction")
 
     # Load model
-    model, history , train_dataset, validation_dataset, _ = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
+    model, history , train_dataset, validation_dataset, _ = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True, device='cuda')
 
     # Generate predition
     i = 0
@@ -36,8 +36,8 @@ def main():
         train_loss_pred, train_component_losses = loss_fn(output_graph, target_graph)
 
     # Extract hamiltonians
-    input_h = reconstruct_matrix(target_graph["h_hop"], target_graph["h_on_sites"], target_graph["edge_index"])
-    predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
+    # input_h = reconstruct_matrix(input_graph["h_hop"], input_graph["h_on_sites"], target_graph["edge_index"])
+    # predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
 
     # === Print the comparison ===
     # print(history.keys()) # dict_keys(['train_loss', 'val_loss', 'train_edge_loss', 'train_node_loss', 'val_edge_loss', 'val_node_loss', 'learning_rate'])

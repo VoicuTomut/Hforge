@@ -31,5 +31,10 @@ def main():
     # Check if the generated indices are identical
     print("Reproducible:", torch.equal(indices1, indices2))
 
+    a = torch.tensor([1, 2, 3], device="cuda")
+    b = torch.tensor([4, 5, 6])
+    print(a.device)
+
+
 if __name__ == "__main__":
     main()

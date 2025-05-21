@@ -5,7 +5,7 @@ from torch_geometric.loader import DataLoader
 from torch import Generator
 from torch_geometric.data import Batch
 
-def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split_ratio = 0.5, cutoff=4.0, max_samples=None, load_other_nr_atoms=False):
+def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split_ratio = 0.5, cutoff=4.0, max_samples=None, load_other_nr_atoms=False, print_finish_message=True):
     import os
     import random
     """
@@ -54,7 +54,7 @@ def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split
         # Break if we've reached max_samples
         if max_samples is not None and sample_count >= max_samples:
             break
-    print("Graph generation done!")
+    # print("Graph generation done!")
 
     # Split into train and validation
     # First shuffle the dataset, but always keep the same seed for reproducibility
@@ -68,7 +68,8 @@ def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split
     split_idx = int(len(validation_dataset) * test_split_ratio)
     test_dataset = validation_dataset[:split_idx]
     validation_dataset = validation_dataset[split_idx:]
-    print(f"Created {len(train_dataset)} training samples, {len(validation_dataset)} validation samples and {len(test_dataset)} test samples.")
+    if print_finish_message:
+        print(f"Created {len(train_dataset)} training samples, {len(validation_dataset)} validation samples and {len(test_dataset)} test samples.")
 
     return train_dataset, validation_dataset, test_dataset
 

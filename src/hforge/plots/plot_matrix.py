@@ -288,7 +288,7 @@ def plot_error_matrices(true_matrix, predicted_matrix, matrix_label=None, figure
 
     # Relative error matrix (in %): e_rel = e_abs / x
     epsilon = 0.001 # * Define your resolution here.
-    relative_error_matrix = absolute_error_matrix / (true_matrix + epsilon) # Sum epsilon to avoid divergences
+    relative_error_matrix = absolute_error_matrix / (true_matrix + epsilon)*100 # Sum epsilon to avoid divergences
 
     # // Optionally, clip extreme values to prevent overflow or underflow
     # // relative_error_matrix = np.clip(relative_error_matrix, -1e100, 1e100)
@@ -390,7 +390,7 @@ def plot_error_matrices_interactive(true_matrix, predicted_matrix, matrix_label=
     # === Error matrices computation ===
     absolute_error_matrix = true_matrix - predicted_matrix
     epsilon = 0.001
-    relative_error_matrix = absolute_error_matrix / (true_matrix + epsilon)
+    relative_error_matrix = absolute_error_matrix / (true_matrix + epsilon)*100
 
     # === Colorbar limits ===
     vmin = np.min([np.min(true_matrix), np.min(predicted_matrix)])

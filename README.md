@@ -36,7 +36,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 Download the dataset locally:
 ```bash
-python examples/get_dataset_localy.py
+python examples/get_dataset_locally.py
 ```
 
 ### Graph Conversion

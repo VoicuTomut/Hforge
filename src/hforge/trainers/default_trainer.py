@@ -16,7 +16,7 @@ from hforge.plots import plot_loss_from_history
 #! Quick fix
 from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, plot_error_matrices_interactive
 from hforge.utils import create_directory, prepare_dataset, load_model_and_dataset_from_directory, prepare_dataloaders, \
-    generate_prediction, print_graph_device, print_data_loader_device, get_stratified_indices, \
+    generate_prediction, print_graph_device, print_data_loader_device, \
     get_stratified_datasets
 
 try:
@@ -323,7 +323,8 @@ class Trainer:
                     orbitals=self.config["orbitals"],
                     training_split_ratio=dataset_config["split_ratio"],
                     cutoff=dataset_config["cutoff"],
-                    max_samples=dataset_config["max_samples"],
+                    # // max_samples=dataset_config["max_samples"],
+                    max_samples=1300,
                     load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
                     print_finish_message=False
                 )

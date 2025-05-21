@@ -3,9 +3,10 @@ import yaml
 from hforge.utils import load_model, load_model_and_dataset_from_directory
 import os
 from hforge.utils import create_directory, get_object_from_module
-from hforge.plots import plot_loss_from_history
+from hforge.plots import plot_loss_from_history, plot_loss_from_history_interactive
 
-# TODO: Write in the title the nr of atoms, if it's train or val sample and the minimum loss. 
+
+# TODO: Write in the title the nr of atoms, if it's train or val sample and the minimum loss.
 
 def main():
     # === Device setup ===
@@ -13,7 +14,7 @@ def main():
 
     # === Load configuration ===
     # * Write the parent directory where all the models are located
-    directory = r"C:\Users\angel\OneDrive - Universitat de Barcelona\1A. MASTER I\TFM\example_results\test"
+    directory = r"C:\Users\angel\Documents\GitHub\Hforge\example_results"
     plots_folder_name = "plot_loss_history"
     plots_directory = os.path.join(directory, plots_folder_name)
     create_directory(plots_directory)
@@ -38,6 +39,9 @@ def main():
             # Plot the full history
             plot_loss_from_history(history, model_directory, start_from=5, tail=folder)
             plot_loss_from_history(history, plots_directory, start_from=5, tail=folder)
+
+            # Plotly
+            plot_loss_from_history_interactive(history, model_directory, tail=folder)
 
         # Prevent from looking inside the folders
         break

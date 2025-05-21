@@ -4,6 +4,8 @@ from datasets import load_from_disk, concatenate_datasets
 from torch_geometric.loader import DataLoader
 from torch import Generator
 from torch_geometric.data import Batch
+from collections import defaultdict
+import random
 
 def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split_ratio = 0.5, cutoff=4.0, max_samples=None, load_other_nr_atoms=False, print_finish_message=True):
     import os
@@ -107,38 +109,88 @@ def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1, seed=4,
 
     return train_loader, validation_loader
 
-from collections import defaultdict
-import random
-import torch
+# def get_stratified_indices(dataset, samples_per_group=3, seed=4):
+#     """
+#     Return indices of `samples_per_group` samples per unique n_atoms type in the dataset.
+#
+#     Args:
+#         dataset: A list or torch Dataset of PyG Data objects
+#         samples_per_group: Number of samples to return for each n_atoms group
+#         seed: Random seed for reproducibility
+#
+#     Returns:
+#         A list of selected indices
+#     """
+#     # Group indices by n_atoms
+#     n_atoms_to_indices = defaultdict(list)
+#     for idx, data in enumerate(dataset):
+#         n_atoms = data.x.size(0)  # assuming x is node feature matrix
+#         n_atoms_to_indices[n_atoms].append(idx)
+#     # print(n_atoms_to_indices)
+#
+#     # Set seed for reproducibility
+#     random.seed(seed)
+#
+#     selected_indices = []
+#     for n_atoms, indices in n_atoms_to_indices.items():
+#         if len(indices) < samples_per_group:
+#             print(f"Warning: Not enough samples for n_atoms={n_atoms}, only found {len(indices)}")
+#             selected = indices  # take all if fewer than needed
+#         else:
+#             selected = random.sample(indices, samples_per_group)
+#         selected_indices.extend(selected)
+#
+#     return selected_indices
 
-def get_stratified_indices(dataset, samples_per_group=3, seed=4):
+def get_stratified_datasets(train_dataset,
+                            val_dataset,
+                            n_train_samples=3,
+                            n_validation_samples=3,
+                            max_n_atoms=None,
+                            seed=4,
+                            print_finish_message=True):
     """
-    Return indices of `samples_per_group` samples per unique n_atoms type in the dataset.
+    Subsample training and validation datasets to have fixed number of samples per n_atoms value.
 
     Args:
-        dataset: A list or torch Dataset of PyG Data objects
-        samples_per_group: Number of samples to return for each n_atoms group
-        seed: Random seed for reproducibility
+        train_dataset: List of PyG Data objects (original train set)
+        val_dataset: List of PyG Data objects (original val set)
+        n_train_samples: Samples per n_atoms group for training
+        n_validation_samples: Samples per n_atoms group for validation
+        max_n_atoms: If set, skip samples with n_atoms > max_n_atoms
+        seed: Random seed
+        print_finish_message: Whether to log the result
 
     Returns:
-        A list of selected indices
+        (train_subset, train_indices, val_subset, val_indices): Subsampled datasets and original indices
     """
-    # Group indices by n_atoms
-    n_atoms_to_indices = defaultdict(list)
-    for idx, data in enumerate(dataset):
-        n_atoms = data.x.size(0)  # assuming x is node feature matrix
-        n_atoms_to_indices[n_atoms].append(idx)
+    rng = random.Random(seed)
 
-    # Set seed for reproducibility
-    random.seed(seed)
+    def subsample(dataset, samples_per_group):
+        grouped = defaultdict(list)
+        for idx, data in enumerate(dataset):
+            n_atoms = data.x.size(0)
+            if max_n_atoms is not None and n_atoms > max_n_atoms:
+                continue
+            grouped[n_atoms].append((idx, data))
 
-    selected_indices = []
-    for n_atoms, indices in n_atoms_to_indices.items():
-        if len(indices) < samples_per_group:
-            print(f"Warning: Not enough samples for n_atoms={n_atoms}, only found {len(indices)}")
-            selected = indices  # take all if fewer than needed
-        else:
-            selected = random.sample(indices, samples_per_group)
-        selected_indices.extend(selected)
+        subset = []
+        subset_indices = []
+        for n_atoms, items in grouped.items():
+            rng.shuffle(items)
+            count = min(len(items), samples_per_group)
+            if count < samples_per_group:
+                print(f"WARNING: Only {count} samples available for n_atoms={n_atoms} (needed {samples_per_group})")
+            selected = items[:count]
+            subset.extend([d for _, d in selected])
+            subset_indices.extend([i for i, _ in selected])
+        return subset, subset_indices
 
-    return selected_indices
+    train_subset, train_indices = subsample(train_dataset, n_train_samples)
+    val_subset, val_indices = subsample(val_dataset, n_validation_samples)
+
+    if print_finish_message:
+        print(f"[Subset Builder] Final: {len(train_subset)} training and {len(val_subset)} validation samples (stratified by n_atoms)")
+
+    return train_subset, train_indices, val_subset, val_indices
+

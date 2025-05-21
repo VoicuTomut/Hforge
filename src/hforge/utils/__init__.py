@@ -1,4 +1,4 @@
-from .dataset_load import prepare_dataset, prepare_dataloaders, get_stratified_indices
+from .dataset_load import prepare_dataset, prepare_dataloaders, get_stratified_indices, get_stratified_datasets
 from .model_load import load_model, load_model_and_dataset_from_directory
 from .directories import create_directory
 from .model_actions import generate_prediction

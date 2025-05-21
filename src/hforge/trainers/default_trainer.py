@@ -16,7 +16,8 @@ from hforge.plots import plot_loss_from_history
 #! Quick fix
 from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, plot_error_matrices_interactive
 from hforge.utils import create_directory, prepare_dataset, load_model_and_dataset_from_directory, prepare_dataloaders, \
-    generate_prediction, print_graph_device, print_data_loader_device, get_stratified_indices
+    generate_prediction, print_graph_device, print_data_loader_device, get_stratified_indices, \
+    get_stratified_datasets
 
 try:
     from comet_ml import Experiment
@@ -327,22 +328,15 @@ class Trainer:
                     print_finish_message=False
                 )
 
-                train_subset_size = 20
-                validation_subset_size = 20
-
-                # # Generate random indices
-                # torch.manual_seed(4)
-                # train_subset_indices = torch.randperm(len(train_dataset))[:train_subset_size]
-                # torch.manual_seed(4)
-                # validation_subset_indices = torch.randperm(len(validation_dataset))[:validation_subset_size]
-
-                # Get the indices of 3 samples of each n_atoms
-                train_subset_indices = get_stratified_indices(train_dataset, samples_per_group=3, seed=4)
-                validation_subset_indices = get_stratified_indices(validation_dataset, samples_per_group=3, seed=4)
-
-                # Get the subset
-                train_dataset_subset = [train_dataset[i] for i in train_subset_indices]
-                validation_dataset_subset = [validation_dataset[i] for i in validation_subset_indices]
+                # Get the subsets
+                train_dataset_subset, train_subset_indices, validation_dataset_subset, validation_subset_indices  = get_stratified_datasets(
+                    train_dataset,
+                    validation_dataset,
+                    n_train_samples=3,
+                    n_validation_samples=3,
+                    max_n_atoms=32,
+                    print_finish_message=False
+                )
                 dataset_subsets = [train_dataset_subset, validation_dataset_subset]
 
                 # Create results directory

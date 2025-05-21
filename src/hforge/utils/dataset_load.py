@@ -7,7 +7,7 @@ from torch_geometric.data import Batch
 from collections import defaultdict
 import random
 
-def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split_ratio = 0.5, cutoff=4.0, max_samples=None, load_other_nr_atoms=False, print_finish_message=True):
+def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split_ratio = 0.5, cutoff=4.0, max_samples=None, load_other_nr_atoms=False, print_finish_message=True, split=True):
     import os
     import random
     """
@@ -63,17 +63,21 @@ def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split
     random.Random(4).shuffle(graph_dataset)
 
     # Then split it
-    split_idx = int(len(graph_dataset) * training_split_ratio)
-    train_dataset = graph_dataset[:split_idx]
-    validation_dataset = graph_dataset[split_idx:]
+    if split:
+        split_idx = int(len(graph_dataset) * training_split_ratio)
+        train_dataset = graph_dataset[:split_idx]
+        validation_dataset = graph_dataset[split_idx:]
 
-    split_idx = int(len(validation_dataset) * test_split_ratio)
-    test_dataset = validation_dataset[:split_idx]
-    validation_dataset = validation_dataset[split_idx:]
-    if print_finish_message:
-        print(f"Created {len(train_dataset)} training samples, {len(validation_dataset)} validation samples and {len(test_dataset)} test samples.")
+        split_idx = int(len(validation_dataset) * test_split_ratio)
+        test_dataset = validation_dataset[:split_idx]
+        validation_dataset = validation_dataset[split_idx:]
 
-    return train_dataset, validation_dataset, test_dataset
+        if print_finish_message:
+            print(f"Created {len(train_dataset)} training samples, {len(validation_dataset)} validation samples and {len(test_dataset)} test samples.")
+
+        return train_dataset, validation_dataset, test_dataset
+    else:
+        return graph_dataset
 
 
 def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1, seed=4, shuffle_train_dataloader=True):

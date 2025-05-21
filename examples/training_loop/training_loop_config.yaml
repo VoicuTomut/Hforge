@@ -1,5 +1,5 @@
 device: "cuda"
-exp_path: "example_results/example_results_usetapprox_2mp_sharing_hplots"
+exp_path: "example_results/hplots_usetapprox_2mp_sharing_resume_sumlossfn"
 dataset:
   path: "./Data/aBN_HSX/nr_atoms_32"
   load_other_nr_atoms: true
@@ -19,7 +19,7 @@ orbitals:
   8: 13
 
 model:
-  path_trained_model: null
+  path_trained_model: "example_results/example_results_usetapprox_2mp_sharing/train_best_model.pt"
   avg_num_neighbors: 8
   nr_bits: 10
 

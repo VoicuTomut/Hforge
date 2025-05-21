@@ -459,8 +459,9 @@ class Trainer:
         print(f"Last model saved at epoch {epoch} to {tsp}")
 
         # Final plots update
+        plot_loss_from_history(self.history, self.training_info_path)
+        plot_loss_from_history_interactive(self.history, self.training_info_path)
         if self.live_plot:
-            self.update_plot()
             # self.create_final_plots()
 
             if self.use_comet and os.path.exists(f"{self.training_info_path}/training_history.png"):

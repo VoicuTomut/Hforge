@@ -342,8 +342,8 @@ class Trainer:
 
                 # Get the subset
                 train_dataset_subset = [train_dataset[i] for i in train_subset_indices]
-                valdiation_dataset_subset = [validation_dataset[i] for i in validation_subset_indices]
-                dataset_subsets = [train_dataset_subset, valdiation_dataset_subset]
+                validation_dataset_subset = [validation_dataset[i] for i in validation_subset_indices]
+                dataset_subsets = [train_dataset_subset, validation_dataset_subset]
 
                 # Create results directory
                 results_directory = self.training_info_path + "/" + "hamiltonian_plots_during_training"
@@ -367,9 +367,16 @@ class Trainer:
                         original_h = reconstruct_matrix(target_graph["edge_description"], target_graph["node_description"], output_graph["edge_index"])
 
                         # === Plot ===
-                        filepath = f"{results_directory}/{dataset_type[j]}_sample_{i}_epoch_{epoch}.png"
+                        if dataset_type[j] == "training":
+                            idx_sample = train_subset_indices[i]
+                        elif dataset_type[j] == "validation":
+                            idx_sample = validation_subset_indices[i]
+                        else:
+                            raise ValueError("Unknown dataset type")
+
                         n_atoms = len(sample["x"])
-                        title = f"Results of sample {i} from {dataset_type[j]} dataset (seed 4). There are {n_atoms} in the unit cell."
+                        filepath = f"{results_directory}/{dataset_type[j]}_atoms_{n_atoms}_sample_{idx_sample}_epoch_{epoch}.png"
+                        title = f"Results of sample {idx_sample} from {dataset_type[j]} dataset (seed 4). There are {n_atoms} in the unit cell."
                         predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100\nMSE evaluation:     {loss.item():.2f} eV²·100"
                         plot_error_matrices(original_h.cpu().numpy(),
                                             predicted_h.cpu().numpy() / 100,
@@ -379,7 +386,7 @@ class Trainer:
                                             n_atoms=n_atoms,
                                             predicted_matrix_text=predicted_matrix_text
                                             )
-                        filepath = f"{results_directory}/{dataset_type[j]}_sample_{i}_epoch_{epoch}.html"
+                        filepath = f"{results_directory}/{dataset_type[j]}_atoms_{n_atoms}_sample_{idx_sample}_epoch_{epoch}.html"
                         predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100<br>MSE evaluation:     {loss.item():.2f} eV²·100"
                         plot_error_matrices_interactive(original_h.cpu().numpy(),
                                             predicted_h.cpu().numpy() / 100,

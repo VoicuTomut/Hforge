@@ -12,7 +12,7 @@ import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Subset
 
-from hforge.plots import plot_loss_from_history
+from hforge.plots import plot_loss_from_history, plot_loss_from_history_interactive
 #! Quick fix
 from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, plot_error_matrices_interactive
 from hforge.utils import create_directory, prepare_dataset, load_model_and_dataset_from_directory, prepare_dataloaders, \
@@ -311,6 +311,7 @@ class Trainer:
                 # self.update_plot()
                 # self.update_plot_learning_rate()
                 plot_loss_from_history(self.history, self.training_info_path)
+                plot_loss_from_history_interactive(self.history, self.training_info_path)
 
             # === Plot hamiltonians while training ===
             if self.plot_matrices_freq is not None and (epoch % self.plot_matrices_freq == 0 or epoch == num_epochs - 1):

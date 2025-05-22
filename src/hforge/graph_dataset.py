@@ -106,6 +106,8 @@ def graph_from_row(row,orbitals, cutoff=3.0):
     # print(row.keys())
     # print("row[nr_atoms]: ", row["nr_atoms"])
     # Get the atomic positions
+    # print(row)
+    # print(row["atomic_positions"])
     positions = np.array(row["atomic_positions"])
     # print("positions.shape:", positions.shape) # [nr_atoms, 3]; each atom has 3D position
 

@@ -1,7 +1,12 @@
 """Script to study the data before training."""
 
 from prettytable import PrettyTable
-from hforge.utils import prepare_dataset, load_config
+
+from hforge.data_management.dataset_load import prepare_dataset_from_parent_dir
+from hforge.utils import load_config
+
+
+# from hforge.utils import prepare_dataset, load_config
 
 
 def main():
@@ -10,16 +15,33 @@ def main():
     config_path = "examples/training_loop/training_loop_config.yaml"
     config = load_config(config_path)
     dataset_config = config["dataset"]
-    dataset = prepare_dataset(
-        dataset_path=dataset_directory,
-        orbitals=config["orbitals"],
-        training_split_ratio=dataset_config["split_ratio"],
-        cutoff=dataset_config["cutoff"],
-        # max_samples=dataset_config["max_samples"],
-        max_samples=None,
-        load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
-        split=False
-    )
+    # dataset = prepare_dataset(
+    #     dataset_path=dataset_directory,
+    #     orbitals=config["orbitals"],
+    #     training_split_ratio=dataset_config["split_ratio"],
+    #     cutoff=dataset_config["cutoff"],
+    #     # max_samples=dataset_config["max_samples"],
+    #     max_samples=None,
+    #     load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
+    #     split=False
+    # )
+
+    # train_dataset, val_dataset, test_dataset = prepare_dataset(
+    #     dataset_path=dataset_directory,
+    #     orbitals=config["orbitals"],
+    #     training_split_ratio=dataset_config["split_ratio"],
+    #     cutoff=dataset_config["cutoff"],
+    #     max_samples=dataset_config["max_samples"],
+    #     # max_samples=None,
+    #     load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
+    #     split=True
+    # )
+
+    parent_dir = "Data/aBN_HSX"
+    dataset = prepare_dataset_from_parent_dir(parent_dir, orbitals=config["orbitals"], cutoff=dataset_config["cutoff"], max_samples=dataset_config["max_samples"], seed=42)
+
+    # # * change this
+    # dataset = val_dataset
 
     # Count the number of each sample
     unique_n_atoms_list = find_unique_n_atoms(dataset)

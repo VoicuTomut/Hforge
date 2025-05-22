@@ -2,12 +2,16 @@
 Training model with Comet.ml tracking and Matplotlib live plotting with optimized loss
 and advanced learning rate scheduling for faster convergence and lower loss
 """
-
+from hforge.data_management.dataset_load import prepare_dataset_from_parent_dir, split_dataset, prepare_dataloaders
 # Imports
 from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import  CosineAnnealingWarmRestarts
+
+from hforge.utils import load_config, get_object_from_module
+from hforge.utils.model_load import load_model
+
 try:
     from comet_ml import Experiment
     COMET_AVAILABLE = True
@@ -15,10 +19,7 @@ except ImportError:
     COMET_AVAILABLE = False
     print("Comet ML not installed. Experiment tracking will be disabled.")
 
-from hforge.utils import prepare_dataset, load_model, prepare_dataloaders, get_object_from_module
-from hforge.mace.modules import RealAgnosticResidualInteractionBlock
 from hforge.model_shell import ModelShell
-from hforge.graph_costfunction import  mse_cost_function, scale_dif_cost_function
 from hforge.trainers.default_trainer import Trainer
 import yaml
 import os
@@ -34,19 +35,16 @@ def save_to_yaml(data, path):
     with open(path, 'w') as file:
         yaml.dump(data, file, default_flow_style=False)
 
-INTERACTION_BLOKS={"RealAgnosticResidualInteractionBlock":RealAgnosticResidualInteractionBlock}
-
-
 
 def main():
 
     # === Load configuration ===
-    with open("examples/training_loop/training_loop_config.yaml", "r") as f:
-        config = yaml.safe_load(f)
+    config = load_config()
 
-    exp_path=config["exp_path"]
-    create_directory(exp_path)
-    save_to_yaml(config, f"{exp_path}/training_config.yaml")
+    # Save current config in results directory
+    results_dir=config["results_dir"]
+    create_directory(results_dir)
+    save_to_yaml(config, f"{results_dir}/training_config.yaml")
 
     # === Device setup ===
     device = torch.device('cuda' if (torch.cuda.is_available() and config["device"]!="cpu") else 'cpu')
@@ -56,28 +54,41 @@ def main():
     dataset_config = config["dataset"]
     orbitals = config["orbitals"]
 
-    # TODO: Better? to, instead of keeping all the dataset loaded in memory, first save the conversion to graph in the disk and then load it from there. But we will then have to keep all the graphs loaded anyways! How can we do better?
+    # TODO: Lazy load instead of keeping everything in memory
     # Convert the data into graphs dataset
-    train_dataset, val_dataset, _ = prepare_dataset(
-        dataset_path=dataset_config["path"],
+    # train_dataset, val_dataset, _ = prepare_dataset(
+    #     dataset_path=dataset_config["path"],
+    #     orbitals=orbitals,
+    #     training_split_ratio=dataset_config["split_ratio"],
+    #     cutoff=dataset_config["cutoff"],
+    #     max_samples=dataset_config["max_samples"],
+    #     load_other_nr_atoms=dataset_config["load_other_nr_atoms"]
+    # )
+    dataset = prepare_dataset_from_parent_dir(
+        parent_dir=dataset_config["path"],
         orbitals=orbitals,
-        training_split_ratio=dataset_config["split_ratio"],
         cutoff=dataset_config["cutoff"],
         max_samples=dataset_config["max_samples"],
-        load_other_nr_atoms=dataset_config["load_other_nr_atoms"]
+        seed=dataset_config["seed"]
     )
 
-    # Create the dataloaders
+    train_dataset, val_dataset = split_dataset(
+        dataset=dataset,
+        training_split_ratio=dataset_config["training_split_ratio"],
+        test_split_ratio=dataset_config["test_split_ratio"],
+        seed=dataset_config["seed"],
+        print_finish_message=True
+    )
+
     train_loader, val_loader = prepare_dataloaders(train_dataset, val_dataset, batch_size=dataset_config["batch_size"])
 
     # === Model Configuration ===
     model_config = config["model"]
     # Inject classes into model config (since YAML can't store class references)
-    model_config["atomic_descriptors"]["interaction_cls_first"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls_first"]]
-    model_config["atomic_descriptors"]["interaction_cls"] = INTERACTION_BLOKS[model_config["atomic_descriptors"]["interaction_cls"]]
+    model_config["atomic_descriptors"]["interaction_cls_first"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls_first"], module='hforge.mace.modules')
+    model_config["atomic_descriptors"]["interaction_cls"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls"], module='hforge.mace.modules')
 
     model = ModelShell(model_config, device=device).to(device)
-    # print("\n Model:\n",model)
 
     # === Model loading ===
     path_trained_model = model_config["path_trained_model"]
@@ -111,6 +122,8 @@ def main():
     trainer_config = config["trainer"]
     trainer = Trainer(
         model=model,
+        train_dataset=train_dataset,
+        val_dataset=val_dataset,
         train_loader=train_loader,
         val_loader=val_loader,
         loss_fn=cost_function,
@@ -122,7 +135,7 @@ def main():
         plot_update_freq=trainer_config["plot_update_freq"],
         grad_clip_value=trainer_config["grad_clip_value"],
         history=history,
-        training_info_path=exp_path,
+        training_info_path=results_dir,
         plot_matrices_freq=trainer_config["plot_matrices_freq"],
         config=config,
         # TODO: Maybe it's a better idea to move all the dataloaders logic intor the Trainer class, instead of passing both datasets and dataloaders
@@ -137,79 +150,79 @@ def main():
     print("\nTraining completed successfully!")
 
 
-    # Test inference with trained model
-    model.eval()
+    # # Test inference with trained model
+    # model.eval()
+    #
+    # # Get a sample from training set
+    # sample_graph = next(iter(train_loader))
+    # if isinstance(sample_graph, list):
+    #     sample_graph = sample_graph[0]
+    #
+    # sample_graph = sample_graph.to(device)
 
-    # Get a sample from training set
-    sample_graph = next(iter(train_loader))
-    if isinstance(sample_graph, list):
-        sample_graph = sample_graph[0]
+    # # Forward pass
+    # with torch.no_grad():
+    #     output_graph = model(sample_graph)
+    #
+    #     # Create target graph for comparison
+    #     target_graph = {
+    #         "edge_index": output_graph["edge_index"],
+    #         "edge_description": sample_graph.h_hop,
+    #         "node_description": sample_graph.s_on_sites
+    #     }
+    #
+    #     # Calculate final inference loss
+    #     inference_loss, component_losses = cost_function(output_graph, target_graph)
+    #
+    #     print("\nFinal inference results:")
+    #     print(f"Total loss: {inference_loss.item():.4f}")
+    #     print(f"Edge loss: {component_losses['edge_loss']:.4f}")
+    #     print(f"Node loss: {component_losses['node_loss']:.4f}")
 
-    sample_graph = sample_graph.to(device)
+        # predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
+        #                                  output_graph["edge_index"])
+        # original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
+        # fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path=f"{results_dir}/matrix_comparison_New_train.html")
+        #
+        # # Display the plots
+        # fig.show()
 
-    # Forward pass
-    with torch.no_grad():
-        output_graph = model(sample_graph)
+    #     # Get a sample from trsin set
+    # sample_graph = next(iter(val_loader))
+    # if isinstance(sample_graph, list):
+    #     sample_graph = sample_graph[0]
+    #
+    # sample_graph = sample_graph.to(device)
+    #
+    # # Forward pass
+    # with torch.no_grad():
+    #     output_graph = model(sample_graph)
+    #
+    #     # Create target graph for comparison
+    #     target_graph = {
+    #         "edge_index": output_graph["edge_index"],
+    #         "edge_description": sample_graph.h_hop,
+    #         "node_description": sample_graph.s_on_sites
+    #     }
+    #
+    #     # Calculate final inference loss
+    #     inference_loss, component_losses = cost_function(output_graph, target_graph)
+    #
+    #     print("\nFinal inference results:")
+    #     print(f"Total loss: {inference_loss.item():.4f}")
+    #     print(f"Edge loss: {component_losses['edge_loss']:.4f}")
+    #     print(f"Node loss: {component_losses['node_loss']:.4f}")
+    #
+    #     predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
+    #                                      output_graph["edge_index"])
+    #     original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
+    #     fig = plot_comparison_matrices(original_h * 100, predicted_h,
+    #                                    save_path=f"{results_dir}/matrix_comparison_New_val.html")
+    #
+    #     # Display the plots
+    #     fig.show()
 
-        # Create target graph for comparison
-        target_graph = {
-            "edge_index": output_graph["edge_index"],
-            "edge_description": sample_graph.h_hop,
-            "node_description": sample_graph.s_on_sites
-        }
-
-        # Calculate final inference loss
-        inference_loss, component_losses = cost_function(output_graph, target_graph)
-
-        print("\nFinal inference results:")
-        print(f"Total loss: {inference_loss.item():.4f}")
-        print(f"Edge loss: {component_losses['edge_loss']:.4f}")
-        print(f"Node loss: {component_losses['node_loss']:.4f}")
-
-        predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
-                                         output_graph["edge_index"])
-        original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
-        fig = plot_comparison_matrices(original_h * 100, predicted_h, save_path=f"{exp_path}/matrix_comparison_New_train.html")
-
-        # Display the plots
-        fig.show()
-
-        # Get a sample from trsin set
-    sample_graph = next(iter(val_loader))
-    if isinstance(sample_graph, list):
-        sample_graph = sample_graph[0]
-
-    sample_graph = sample_graph.to(device)
-
-    # Forward pass
-    with torch.no_grad():
-        output_graph = model(sample_graph)
-
-        # Create target graph for comparison
-        target_graph = {
-            "edge_index": output_graph["edge_index"],
-            "edge_description": sample_graph.h_hop,
-            "node_description": sample_graph.s_on_sites
-        }
-
-        # Calculate final inference loss
-        inference_loss, component_losses = cost_function(output_graph, target_graph)
-
-        print("\nFinal inference results:")
-        print(f"Total loss: {inference_loss.item():.4f}")
-        print(f"Edge loss: {component_losses['edge_loss']:.4f}")
-        print(f"Node loss: {component_losses['node_loss']:.4f}")
-
-        predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"],
-                                         output_graph["edge_index"])
-        original_h = reconstruct_matrix(sample_graph["h_hop"], sample_graph["h_on_sites"], output_graph["edge_index"])
-        fig = plot_comparison_matrices(original_h * 100, predicted_h,
-                                       save_path=f"{exp_path}/matrix_comparison_New_val.html")
-
-        # Display the plots
-        fig.show()
-
-    print("\nTraining completed successfully!")
+    # print("\nTraining completed successfully!")
 
 if __name__ == "__main__":
     main()

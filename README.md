@@ -43,7 +43,7 @@ python examples/get_dataset_locally.py
 
 Test conversion to graph:
 ```bash
-python examples/conversion_to_graph.py
+python examples/deprecated_conversion_to_graph.py
 ```
 
 ## Current Status

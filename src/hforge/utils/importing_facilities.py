@@ -9,6 +9,6 @@ def get_object_from_module(class_name, module="hforge.mace.modules"):
     except AttributeError:
         return None  # Or raise an error if you prefer
 
-def load_config(path):
-    with open("examples/training_loop/training_loop_config.yaml", "r") as f:
+def load_config(path="examples/training_loop/training_loop_config.yaml"):
+    with open(path, "r") as f:
         return yaml.safe_load(f)

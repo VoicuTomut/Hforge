@@ -12,12 +12,11 @@ import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Subset
 
+from hforge.data_management.dataset_load import prepare_dataset_from_parent_dir, split_dataset, get_stratified_datasets
 from hforge.plots import plot_loss_from_history, plot_loss_from_history_interactive
-#! Quick fix
 from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, plot_error_matrices_interactive
-from hforge.utils import create_directory, prepare_dataset, load_model_and_dataset_from_directory, prepare_dataloaders, \
-    generate_prediction, print_graph_device, print_data_loader_device, \
-    get_stratified_datasets
+from hforge.utils import create_directory
+from hforge.utils.model_actions import generate_hamiltonian_prediction
 
 try:
     from comet_ml import Experiment
@@ -29,7 +28,7 @@ except ImportError:
 
 
 class Trainer:
-    def __init__(self, model, train_loader, val_loader, loss_fn, optimizer, device='cpu',
+    def __init__(self, model, train_dataset, val_dataset, train_loader, val_loader, loss_fn, optimizer, device='cpu',
                  use_comet=False, live_plot=True, plot_update_freq=1, training_info_path="", lr_scheduler=None, grad_clip_value=1.0, history=None, plot_matrices_freq=None, config=None):
         """Initialize the Trainer class for training and validating a model.
         This class handles the training loop, validation, and logging of metrics.
@@ -52,6 +51,8 @@ class Trainer:
         """
         self.model = model.to(device)
         self.config = config
+        self.train_dataset = train_dataset
+        self.val_dataset = val_dataset
         self.train_loader = train_loader
         self.val_loader = val_loader
 
@@ -319,21 +320,21 @@ class Trainer:
                 # === Get a reproducible random subset of the datasets ===
                 # Load the datasets
                 dataset_config = self.config["dataset"]
-                train_dataset, validation_dataset , _= prepare_dataset(
-                    dataset_path=dataset_config["path"],
-                    orbitals=self.config["orbitals"],
-                    training_split_ratio=dataset_config["split_ratio"],
-                    cutoff=dataset_config["cutoff"],
-                    # // max_samples=dataset_config["max_samples"],
-                    max_samples=1300,
-                    load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
-                    print_finish_message=False
-                )
+                # train_dataset, validation_dataset , _= prepare_dataset(
+                #     dataset_path=dataset_config["path"],
+                #     orbitals=self.config["orbitals"],
+                #     training_split_ratio=dataset_config["split_ratio"],
+                #     cutoff=dataset_config["cutoff"],
+                #     # // max_samples=dataset_config["max_samples"],
+                #     max_samples=1300,
+                #     load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
+                #     print_finish_message=False
+                # )
 
                 # Get the subsets
                 train_dataset_subset, train_subset_indices, validation_dataset_subset, validation_subset_indices  = get_stratified_datasets(
-                    train_dataset,
-                    validation_dataset,
+                    self.train_dataset,
+                    self.val_dataset,
                     n_train_samples=3,
                     n_validation_samples=3,
                     max_n_atoms=32,
@@ -349,18 +350,9 @@ class Trainer:
                 for j, dataset in enumerate(dataset_subsets):
                     dataset_type = ["training", "validation"]
                     for i, sample in enumerate(dataset):
+                        sample = sample.clone()
                         sample = sample.to(self.device)
-                        output_graph = generate_prediction(self.model, sample)
-                        target_graph = {
-                            "edge_index": output_graph["edge_index"],
-                            "edge_description": sample.h_hop,
-                            "node_description": sample.h_on_sites
-                        }
-
-                        loss, _ = self.loss_fn(output_graph, target_graph)
-
-                        predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
-                        original_h = reconstruct_matrix(target_graph["edge_description"], target_graph["node_description"], output_graph["edge_index"])
+                        loss, predicted_h, original_h = generate_hamiltonian_prediction(self.model, sample, self.loss_fn)
 
                         # === Plot ===
                         if dataset_type[j] == "training":

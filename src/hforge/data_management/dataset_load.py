@@ -1,4 +1,7 @@
+import os
 
+from hforge.data_management import graph_conversion
+from hforge.data_management.data_processing import get_uniform_distribution
 from hforge.graph_dataset import graph_from_row
 from datasets import load_from_disk, concatenate_datasets
 from torch_geometric.loader import DataLoader
@@ -7,9 +10,55 @@ from torch_geometric.data import Batch
 from collections import defaultdict
 import random
 
+def prepare_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_samples=None, seed=42):
+    # Get the path to each dataset
+    dataset_paths = [os.path.join(parent_dir, folder) for folder in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, folder))]
+
+    # Load all datasets
+    datasets = [load_from_disk(path) for path in dataset_paths]
+
+    # Load only a uniform distribution (w.r.t n_atoms) subset. I.e. Ditch the rest.
+    if max_samples is not None:
+        datasets = get_uniform_distribution(datasets, max_samples, seed=seed)
+
+    # Concat all of them
+    dataset = concatenate_datasets(datasets)
+
+    # Convert them to graphs
+    graph_dataset = graph_conversion(dataset, orbitals, cutoff=cutoff)
+
+    return graph_dataset
+
+def split_dataset(dataset, training_split_ratio=0.8, test_split_ratio=None, seed=42, print_finish_message=True):
+    # TODO: Stratify. Make sure there are equal n_atoms in each split.
+
+    # Randomize
+    random.Random(seed).shuffle(dataset)
+
+    # Split
+    split_idx = int(len(dataset) * training_split_ratio)
+    train_dataset = dataset[:split_idx]
+    validation_dataset = dataset[split_idx:]
+
+    # Also split validation dataset into validation and test if specified.
+    if test_split_ratio is not None:
+        split_idx = int(len(validation_dataset) * test_split_ratio)
+        test_dataset = validation_dataset[:split_idx]
+        validation_dataset = validation_dataset[split_idx:]
+
+        # Print final message
+        if print_finish_message:
+            print(f"Created {len(train_dataset)} training samples, {len(validation_dataset)} validation samples and {len(test_dataset)} test samples.")
+        return train_dataset, validation_dataset, test_dataset
+
+    else:
+        # Print final message
+        if print_finish_message:
+            print(f"Created {len(train_dataset)} training samples and {len(validation_dataset)} validation samples.")
+        return train_dataset, validation_dataset
+
+
 def prepare_dataset(dataset_path, orbitals, training_split_ratio=0.8, test_split_ratio = 0.5, cutoff=4.0, max_samples=None, load_other_nr_atoms=False, print_finish_message=True, split=True):
-    import os
-    import random
     """
     Prepare dataset for training by returning the train and validation data loaders.
 

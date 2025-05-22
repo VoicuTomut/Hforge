@@ -2,6 +2,11 @@ from prettytable import PrettyTable
 import os
 
 def main():
+    print(4 / 2)
+    print( 5 / 2)
+    print( 5 // 2)
+    print( 5 % 2)
+
     table = PrettyTable(["Type", "Last model save", "New prediction"])
     print(table)
 

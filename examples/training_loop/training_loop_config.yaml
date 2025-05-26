@@ -4,7 +4,7 @@ dataset:
   path: "./Data/aBN_HSX"
   training_split_ratio: 0.80
   test_split_ratio: 0.50
-  batch_size: 30
+  batch_size: 80
   cutoff: 3.0
   max_samples: null
   seed: 42
@@ -109,16 +109,11 @@ scheduler:
 trainer:
   use_comet: false
   live_plot: true
-<<<<<<< Updated upstream
-  plot_update_freq: 50
-  plot_matrices_freq: 500
-=======
   plot_update_freq: 1
   plot_matrices_freq: 200
->>>>>>> Stashed changes
   grad_clip_value: 0.1
   num_epochs: 12000
   filename: "best_model.pt"
 
 cost_function:
-  function: mse_cost_function
+  function: mse_mean_cost_function

@@ -57,9 +57,7 @@ def load_preprocessed_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, 
         preprocess_and_save_graphs(datasets, orbitals, graph_dataset_dir, cutoff=cutoff)
 
         # Load the needed data (by calling again this function)
-        load_preprocessed_dataset_from_parent_dir(graph_dataset_dir, orbitals, cutoff, max_samples, seed)
-
-        raise ValueError("if statement never reached")
+        return load_preprocessed_dataset_from_parent_dir(graph_dataset_dir, orbitals, cutoff, max_samples, seed)
 
 
 

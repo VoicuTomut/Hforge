@@ -1,6 +1,6 @@
 import torch
 
-def mse_cost_function(pred_graph, target_graph, scale_factor=100.0):
+def mse_mean_cost_function(pred_graph, target_graph, scale_factor=100.0):
     """
     Calculate loss between predicted and target Hamiltonian and overlap matrices with dynamic weighting.
 

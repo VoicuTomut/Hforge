@@ -1,16 +1,70 @@
 import os
 
+import torch
+from torch.utils.data import random_split
+
 from hforge.data_management import graph_conversion
-from hforge.data_management.data_processing import get_uniform_distribution
-from hforge.graph_dataset import graph_from_row
+from hforge.data_management.data_processing import get_stratified_dataset, preprocess_and_save_graphs
+from hforge.graph_dataset import graph_from_row, LazyGraphDataset
 from datasets import load_from_disk, concatenate_datasets
 from torch_geometric.loader import DataLoader
-from torch import Generator
 from torch_geometric.data import Batch
 from collections import defaultdict
 import random
 
-def prepare_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_samples=None, seed=42):
+def load_and_process_raw_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_samples=None, seed=42):
+
+    import time
+    print("Start loading dataset from_parent_dir")
+    ti = time.time()
+
+    datasets = read_datasets_list_from_parent_dir(parent_dir, max_samples, seed)
+
+    # Concat all of them
+    dataset = concatenate_datasets(datasets)
+
+    tf = time.time()
+    t1 = tf-ti
+    print(f"Before graph conversion: {t1}s")
+    ti2 = time.time()
+
+    # Convert them to graphs
+    graph_dataset = graph_conversion(dataset, orbitals, cutoff=cutoff)
+
+    tf2 = time.time()
+    tf_graph = tf2 - ti
+    print(f"Graph conversion time: {tf_graph}s")
+    print(f"Total time: {-(ti-tf2)}s")
+
+    return graph_dataset
+
+def load_preprocessed_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_samples=None, seed=42):
+    # Check if directory with dataset converted to graph already exists
+    graph_dataset_dir = os.path.dirname(parent_dir)
+    graph_foldername = 'aBN_HSX_graphs'
+    graph_dataset_dir = os.path.join(graph_dataset_dir, graph_foldername)
+    if os.path.exists(graph_dataset_dir):
+        # Load the already preprocessed graphs, but only max_samples of them.
+        dataset =  LazyGraphDataset(graph_dataset_dir, max_samples=max_samples, seed=seed)
+        return dataset
+    else:
+        # === Load ALL aBN dataset and convert it to graph ===
+        # Load datasets
+        # WARNING: THIS WILL PROCESS ALL DATSET. MIGHT TAKE A LOT OF TIME. BUT WILL DO JUST ONCE.
+        datasets = read_datasets_list_from_parent_dir(parent_dir, max_samples=None, seed=seed)
+
+        # Convert them to graphs and save locally
+        preprocess_and_save_graphs(datasets, orbitals, graph_dataset_dir, cutoff=cutoff)
+
+        # Load the needed data (by calling again this function)
+        load_preprocessed_dataset_from_parent_dir(graph_dataset_dir, orbitals, cutoff, max_samples, seed)
+
+        raise ValueError("if statement never reached")
+
+
+
+def read_datasets_list_from_parent_dir(parent_dir, max_samples=None, seed=42):
+    """Return a list of datasets, classified by the nº atoms."""
     # Get the path to each dataset
     dataset_paths = [os.path.join(parent_dir, folder) for folder in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, folder))]
 
@@ -19,17 +73,49 @@ def prepare_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_sample
 
     # Load only a uniform distribution (w.r.t n_atoms) subset. I.e. Ditch the rest.
     if max_samples is not None:
-        datasets = get_uniform_distribution(datasets, max_samples, seed=seed)
+        datasets = get_stratified_dataset(datasets, max_samples, seed=seed)
+    return datasets
+
+
+def concat_datasets_from_partent_dir(parent_dir, max_samples=None, seed=42):
+    datasets = read_datasets_list_from_parent_dir(parent_dir, max_samples, seed)
 
     # Concat all of them
     dataset = concatenate_datasets(datasets)
+    return dataset
 
-    # Convert them to graphs
-    graph_dataset = graph_conversion(dataset, orbitals, cutoff=cutoff)
 
-    return graph_dataset
 
-def split_dataset(dataset, training_split_ratio=0.8, test_split_ratio=None, seed=42, print_finish_message=True):
+def split_graph_dataset(dataset, training_split_ratio=0.8, test_split_ratio=None, seed=42, print_finish_message=True):
+    # TODO: Stratify. Make sure there are equal n_atoms in each split.
+
+    # === Split ===
+    train_size = int(len(dataset) * training_split_ratio)
+    val_size = len(dataset) - train_size
+
+    generator = torch.Generator().manual_seed(seed)
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator)
+
+    # Also split validation dataset into validation and test if specified.
+    if test_split_ratio is not None:
+        test_size = int(len(val_dataset) * test_split_ratio)
+        val_size = len(val_dataset) - test_size
+        generator = torch.Generator().manual_seed(seed)
+        val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size], generator=generator)
+
+        # Print final message
+        if print_finish_message:
+            print(f"Created {len(train_dataset)} training samples, {len(val_dataset)} validation samples and {len(test_dataset)} test samples.")
+        return train_dataset, val_dataset, test_dataset
+
+    else:
+        # Print final message
+        if print_finish_message:
+            print(f"Created {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
+        return train_dataset, val_dataset
+
+
+def split_raw_dataset(dataset, training_split_ratio=0.8, test_split_ratio=None, seed=42, print_finish_message=True):
     # TODO: Stratify. Make sure there are equal n_atoms in each split.
 
     # Randomize
@@ -197,8 +283,8 @@ def prepare_dataloaders(train_dataset, validation_dataset, batch_size=1, seed=4,
 
 def get_stratified_datasets(train_dataset,
                             val_dataset,
-                            n_train_samples=3,
-                            n_validation_samples=3,
+                            n_train_samples=1,
+                            n_validation_samples=1,
                             max_n_atoms=None,
                             seed=4,
                             print_finish_message=True):

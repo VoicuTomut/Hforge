@@ -2,9 +2,10 @@
 Training model with Comet.ml tracking and Matplotlib live plotting with optimized loss
 and advanced learning rate scheduling for faster convergence and lower loss
 """
-from hforge.data_management.dataset_load import prepare_dataset_from_parent_dir, split_dataset, prepare_dataloaders
-# Imports
-from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix
+import yaml
+
+from hforge.data_management.dataset_load import load_and_process_raw_dataset_from_parent_dir, split_raw_dataset, \
+    prepare_dataloaders, load_preprocessed_dataset_from_parent_dir, split_graph_dataset
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import  CosineAnnealingWarmRestarts
@@ -21,7 +22,6 @@ except ImportError:
 
 from hforge.model_shell import ModelShell
 from hforge.trainers.default_trainer import Trainer
-import yaml
 import os
 
 def create_directory(path):
@@ -54,17 +54,7 @@ def main():
     dataset_config = config["dataset"]
     orbitals = config["orbitals"]
 
-    # TODO: Lazy load instead of keeping everything in memory
-    # Convert the data into graphs dataset
-    # train_dataset, val_dataset, _ = prepare_dataset(
-    #     dataset_path=dataset_config["path"],
-    #     orbitals=orbitals,
-    #     training_split_ratio=dataset_config["split_ratio"],
-    #     cutoff=dataset_config["cutoff"],
-    #     max_samples=dataset_config["max_samples"],
-    #     load_other_nr_atoms=dataset_config["load_other_nr_atoms"]
-    # )
-    dataset = prepare_dataset_from_parent_dir(
+    dataset = load_preprocessed_dataset_from_parent_dir(
         parent_dir=dataset_config["path"],
         orbitals=orbitals,
         cutoff=dataset_config["cutoff"],
@@ -72,7 +62,7 @@ def main():
         seed=dataset_config["seed"]
     )
 
-    train_dataset, val_dataset = split_dataset(
+    train_dataset, val_dataset, _ = split_graph_dataset(
         dataset=dataset,
         training_split_ratio=dataset_config["training_split_ratio"],
         test_split_ratio=dataset_config["test_split_ratio"],

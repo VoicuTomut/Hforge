@@ -2,7 +2,7 @@
 
 from prettytable import PrettyTable
 
-from hforge.data_management.dataset_load import prepare_dataset_from_parent_dir
+from hforge.data_management.dataset_load import load_and_process_raw_dataset_from_parent_dir
 from hforge.utils import load_config
 
 
@@ -38,7 +38,7 @@ def main():
     # )
 
     parent_dir = "Data/aBN_HSX"
-    dataset = prepare_dataset_from_parent_dir(parent_dir, orbitals=config["orbitals"], cutoff=dataset_config["cutoff"], max_samples=dataset_config["max_samples"], seed=42)
+    dataset = load_and_process_raw_dataset_from_parent_dir(parent_dir, orbitals=config["orbitals"], cutoff=dataset_config["cutoff"], max_samples=dataset_config["max_samples"], seed=42)
 
     # # * change this
     # dataset = val_dataset

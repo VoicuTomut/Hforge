@@ -12,7 +12,7 @@ import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Subset
 
-from hforge.data_management.dataset_load import prepare_dataset_from_parent_dir, split_dataset, get_stratified_datasets
+from hforge.data_management.dataset_load import load_and_process_raw_dataset_from_parent_dir, split_raw_dataset, get_stratified_datasets
 from hforge.plots import plot_loss_from_history, plot_loss_from_history_interactive
 from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, plot_error_matrices_interactive
 from hforge.utils import create_directory
@@ -318,26 +318,13 @@ class Trainer:
             if self.plot_matrices_freq is not None and (epoch % self.plot_matrices_freq == 0 or epoch == num_epochs - 1):
 
                 # === Get a reproducible random subset of the datasets ===
-                # Load the datasets
-                dataset_config = self.config["dataset"]
-                # train_dataset, validation_dataset , _= prepare_dataset(
-                #     dataset_path=dataset_config["path"],
-                #     orbitals=self.config["orbitals"],
-                #     training_split_ratio=dataset_config["split_ratio"],
-                #     cutoff=dataset_config["cutoff"],
-                #     # // max_samples=dataset_config["max_samples"],
-                #     max_samples=1300,
-                #     load_other_nr_atoms=dataset_config["load_other_nr_atoms"],
-                #     print_finish_message=False
-                # )
-
                 # Get the subsets
                 train_dataset_subset, train_subset_indices, validation_dataset_subset, validation_subset_indices  = get_stratified_datasets(
                     self.train_dataset,
                     self.val_dataset,
-                    n_train_samples=3,
-                    n_validation_samples=3,
-                    max_n_atoms=32,
+                    n_train_samples=1,
+                    n_validation_samples=1,
+                    max_n_atoms=None,
                     print_finish_message=False
                 )
                 dataset_subsets = [train_dataset_subset, validation_dataset_subset]

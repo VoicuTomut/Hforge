@@ -13,6 +13,13 @@ If you need cuda support, then you have to install torch separatelly. Overwritin
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
 
+## First use
+First you need to download the dataset from HuggingFace. This is done by executing 
+```bash
+python examples/get_dataset_locally.py
+```
+However, this will also convert the dataset to graphs. This conversion depends on the orbitals and the cutoff radius that you want for your model. Thus, everytime you want to change these two parameters you will need to change them in the training_loop_config.yaml file, delete the 'aBN_HSX_graphs' folder and rerun this script.
+
 ## Examples
 
 ### How to use the model in different contexts:

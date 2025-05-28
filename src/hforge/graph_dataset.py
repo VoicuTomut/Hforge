@@ -186,6 +186,7 @@ def graph_from_row(row,orbitals, cutoff=3.0):
     # print("h matrix:", row['h_matrix'])
     hm = np.array(row['h_matrix'])
     # print("h matrix.shape:", hm.shape)
+
     sm = np.array(row['h_matrix'])
     # print("s matrix.shape:", sm.shape)
 

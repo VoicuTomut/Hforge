@@ -67,10 +67,12 @@ def get_neighborhood(
         positions=positions,
         cutoff=cutoff,
     )
-    # print("\nsender= ", sender)
+    # print("\ncutoff= ", cutoff)
+    # print("sender= ", sender)
     # print("receiver= ", receiver)
     # print("unit_shifts.shape= ", unit_shifts.shape)
     # print("unit_shifts= ", unit_shifts)
+
 
     # Remove self-edges that are not across periodic boundaries
     if not true_self_interaction:
@@ -82,11 +84,19 @@ def get_neighborhood(
         receiver = receiver[mask]
         unit_shifts = unit_shifts[mask]
 
+    # print("\ncutoff= ", cutoff)
+    # print("sender= ", sender)
+    # print("receiver= ", receiver)
+    # print("unit_shifts.shape= ", unit_shifts.shape)
+    # print("unit_shifts= ", unit_shifts)
+
     # Pair indices for neighbor edges
     edge_index = np.stack((sender, receiver), axis=0)
 
     # Convert unit cell shifts to real-space displacement vectors
     shifts = np.dot(unit_shifts, cell)
+    # print("shifts= ", shifts)
+
 
     return edge_index, shifts, unit_shifts, cell
 

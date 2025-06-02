@@ -43,10 +43,7 @@ def main():
     print("Graphs:",graphs)
 
     # Dataset:
-    dataset_place="./Data/AtomicGraphs"
-    graph_dataset=AtomicGraphDataset(graphs, root=dataset_place)
-    graph_dataset.process()  # Save the dataset to disk
-    print("Dataset saved.")
+    deprecated_conversion_to_graph.py
 
     # Load the dataset from disk
     print("load data:")

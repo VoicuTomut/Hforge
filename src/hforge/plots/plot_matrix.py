@@ -6,6 +6,7 @@ import torch
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 
@@ -247,7 +248,7 @@ def reconstruct_matrix(hop, onsite, reduce_edge_index):
         full_matrix[row_start:row_end, row_start:row_end] = onsite[i]
 
     # Convert edge_index to a tensor and reshape to pairs for easier handling
-    edge_pairs = torch.tensor(reduce_edge_index).reshape(-1, 2)
+    edge_pairs = reduce_edge_index.clone().detach().reshape(-1, 2)
 
     # Fill the off-diagonal blocks based on edge_index and hop matrices
     for idx, (site_i, site_j) in enumerate(edge_pairs):
@@ -266,99 +267,268 @@ def reconstruct_matrix(hop, onsite, reduce_edge_index):
 
     return full_matrix
 
-# Temporal, Angel:
-def plot_matrices_true_prediction_difference(M_true, M_pred, label='', path=''):
-    '''
-    Plot the true matrix, the predicted matrix and the difference between both matrices.
-    Aimed to study the Hamiltonian matrices and overlap matrices predictions.
-    
-    Parameters
-    ----------
-    M_true : np.ndarray
-        The true matrix.
-    M_pred : np.ndarray
-        The predicted matrix.
-    label : str
-        The label of the matrix to display in the title.
-    '''
-    import matplotlib.pyplot as plt
-    import numpy as np
+def plot_error_matrices(true_matrix, predicted_matrix, matrix_label=None, figure_title=None, predicted_matrix_text=None, filepath=None, n_atoms=None, absolute_error_cbar_limit=None):
+    """
+    Saves as .png the plots of the true matrix, predicted matrix, absolute and relatives errors with additional stats.
 
-    matrices = [M_true, M_pred]
+    Args:
+        true_matrix: The ground truth matrix
+        predicted_matrix: The matrix you want to compare.
+        matrix_label (str): The matrix type of the true and prediced matrices, to use in the title. (Optional)
+        figure_title (str): Title of the figure. (Optional)
+        predicted_matrix_text (str): Text under the predicted matrix. (Optional)
+        filepath (str): Path to save the figure. (Optional)
+        n_atoms (int): Number of atoms of the hamiltonian to plot a grid dividing different orbitals. (Optional)
+    """
 
-    # Compute the difference matrix (in %)
-    M_diff = M_true - M_pred
+    # === Error matrices computation ===
 
-    # Avoid division by zero and ensure stability
-    epsilon = np.finfo(float).eps  # Smallest positive number
-    M_true = np.where(M_true == 0, epsilon, M_true)  # Replace zeros with epsilon
-    # print(M_diff[37,31])
-    # print(M_true[37,31])
-    M_diff = M_diff / M_true
+    # Absolute error matrix
+    absolute_error_matrix = true_matrix - predicted_matrix
 
-    # for i, row in enumerate(M_true):
-    #     for j, element in enumerate(row):
-    #         if element > 1e-2:
-    #             M_diff[i,j] = M_diff[i,j]/M_true[i,j]
-    #         elif np.isclose(M_diff[i,j], element, atol=0.01, rtol=0):
-    #             M_diff[i,j] = 0
-    #         else:
-    #             # M_diff[i,j] = M_diff[i,j]/M_true[i,j]
-    #             M_diff[i,j] = 0
+    # Relative error matrix (in %): e_rel = e_abs / x
+    epsilon = 0.001 # * Define your resolution here.
+    relative_error_matrix = absolute_error_matrix / (true_matrix + epsilon)*100 # Sum epsilon to avoid divergences
 
+    # // Optionally, clip extreme values to prevent overflow or underflow
+    # // relative_error_matrix = np.clip(relative_error_matrix, -1e100, 1e100)
 
-    # Optionally, clip extreme values to prevent overflow or underflow
-    M_diff = np.clip(M_diff, -1e100, 1e100)
-    
-    #############################
+    # Compute the limits of the true and predicted matrices:
+    vmin = np.min([np.min(true_matrix), np.min(predicted_matrix)])
+    vmax = np.max([np.max(true_matrix), np.max(predicted_matrix)])
+    cbar_limits = [np.max([np.abs(vmin), np.abs(vmax)])for _ in range(2)] # Put the zero in the middle of the colorbar
 
-    # Plot the true matrix, the predicted matrix.
-    fig, axes = plt.subplots(1, 3, figsize=(20, 5))
-    cmap_string = 'RdYlBu'
-    vmin = np.min([np.min(M_true), np.min(M_pred)])
-    vmax = np.max([np.max(M_true), np.max(M_pred)])
-    
-    # Put the zero in the middle of the colorbar
-    vmax_absolute = np.max([np.abs(vmin), np.abs(vmax)])
-
-    for i, matrix in enumerate(matrices):
-        image = axes[i].imshow(matrix, cmap=cmap_string, vmin=-vmax_absolute, vmax=vmax_absolute)#, extent=[-matrix.shape[1]//2, matrix.shape[1]//2, -matrix.shape[0]//2, matrix.shape[0]//2])
-
-        # axes[i].set_xlabel("x")
-        # axes[i].set_ylabel("y")
-
-        titles = ["True " + label, "Predicted " + label]
-        axes[i].set_title(titles[i])
-        axes[i].xaxis.tick_top()
-
-        cbar = fig.colorbar(image)
-        cbar.ax.set_title('Ev')
-
-    #############################
-
-    # Plot the difference matrix
-    vmin = np.min(M_diff)
-    vmax = np.max(M_diff)
-    vmax_absolute = np.max([np.abs(vmin), np.abs(vmax)])
-
-    max_error = 100
-    if vmax_absolute>max_error:
-        image = axes[2].imshow(M_diff, cmap=cmap_string,  vmin=-max_error, vmax=max_error)#, extent=[-matrix.shape[1]//2, matrix.shape[1]//2, -matrix.shape[0]//2, matrix.shape[0]//2])
+    # Compute the limits of the absolute error matrix:
+    if absolute_error_cbar_limit is None:
+        vmin = np.min(absolute_error_matrix)
+        vmax = np.max(absolute_error_matrix)
+        cbar_limits.append(np.max([np.abs(vmin), np.abs(vmax)]))
     else:
-        image = axes[2].imshow(M_diff, cmap=cmap_string,  vmin=-vmax_absolute, vmax=vmax_absolute)#, extent=[-matrix.shape[1]//2, matrix.shape[1]//2, -matrix.shape[0]//2, matrix.shape[0]//2])
-    axes[2].set_title('Relative error (M-M\')/M')
-    cbar = fig.colorbar(image)
-    cbar.ax.set_title('%')
+        cbar_limits.append(absolute_error_cbar_limit)
 
-    # Plot the max and min
-    max_diff = np.max(M_diff)
-    min_diff = np.min(M_diff)
-    axes[2].text(0.5, -0.1, f'max = {max_diff:.2f},  min = {min_diff:.2f}', ha='center', va='center', transform=axes[2].transAxes, fontsize=12)
-    axes[2].xaxis.tick_top()
+    # Compute the limits of the relative error matrix:
+    max_error = 100.0 # %
+    cbar_limits.append(max_error)
 
-    if path=="":
+    # === Set titles ===
+    if matrix_label is None:
+        matrix_label = ''
+    titles = ["True " + matrix_label, "Predicted " + matrix_label, 'Absolute error (A-B)', f'Relative error (A-B)/(A+{epsilon})']
+    cbar_titles = ["eV", "eV", "eV", "%"]
+
+    # === Plots ===
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+    cmap_string = 'RdYlBu'
+
+    # Plot the matrices:
+    matrices = [true_matrix, predicted_matrix, absolute_error_matrix, relative_error_matrix]
+
+    for i, axis in enumerate(axes.flat):
+        image = axis.imshow(matrices[i], cmap=cmap_string, vmin=-cbar_limits[i], vmax=cbar_limits[i])
+        cbar = fig.colorbar(image, fraction=0.046, pad=0.04)
+        cbar.ax.set_title(cbar_titles[i])
+        axis.set_title(titles[i])
+
+        axis.set_xlabel("Matrix element")
+        axis.set_ylabel("Matrix element")
+        axis.xaxis.tick_top()
+        axis.xaxis.set_label_position("top")
+
+        # Matrix blocks divisor
+        # TODO: Now is set to a ctt nº of orbitals, 13. We will need to allow flexible nº of orbitals, depending on the config file.
+        if n_atoms is not None and n_atoms <= 8: # When n_atoms is too high, the grid makes the matrix ilegible.
+            n_orbitals = 13
+            minor_ticks = np.arange(-0.5, n_orbitals*n_atoms, n_orbitals)
+            axes.flat[i].set_xticks(minor_ticks, minor=True)
+            axes.flat[i].set_yticks(minor_ticks, minor=True)
+            axes.flat[i].grid(which='minor', color='black', linestyle='-', linewidth=1)
+            axes.flat[i].tick_params(which='minor', left=False, top=False)
+    fig.tight_layout()
+
+    # === Show predicted matrix text ===
+    if predicted_matrix_text is not None:
+        axes.flat[1].text(1.1, -0.05, predicted_matrix_text, ha='right', va='top', transform=axes.flat[1].transAxes, fontsize=12)
+
+    # === Max and min absolute error ===
+    max_absolute_error = np.max(absolute_error_matrix)
+    min_absolute_error = np.min(absolute_error_matrix)
+    axes.flat[2].text(0.5, -0.1, f'max = {max_absolute_error:.2f} eV,  min = {min_absolute_error:.2f} eV', ha='center', va='center', transform=axes.flat[2].transAxes, fontsize=12)
+
+    # === Max and min relative error ===
+    max_relative_error = np.max(relative_error_matrix)
+    min_relative_error = np.min(relative_error_matrix)
+    axes.flat[3].text(0.5, -0.1, f'max = {max_relative_error:.2f}%,  min = {min_relative_error:.2f}%', ha='center', va='center', transform=axes.flat[3].transAxes, fontsize=12)
+
+    # === Title of the figure ===
+    if figure_title is not None:
+        fig.suptitle(figure_title, fontsize=16)
+        make_space_above(axes, topmargin=0.8)
+
+    # === Save figure ===
+    if filepath is None:
         plt.show()
     else:
-        plt.savefig(path)
-
+        plt.savefig(filepath)
     plt.close(fig)
+
+def make_space_above(axes, topmargin=1):
+    """Increase figure size to make topmargin (in inches) space for
+        titles, without changing the axes sizes"""
+    fig = axes.flatten()[0].figure
+    s = fig.subplotpars
+    w, h = fig.get_size_inches()
+
+    figh = h - (1-s.top)*h  + topmargin
+    fig.subplots_adjust(bottom=s.bottom*h/figh, top=1-topmargin/figh)
+    fig.set_figheight(figh)
+
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+def plot_error_matrices_interactive(true_matrix, predicted_matrix, matrix_label=None, figure_title=None, predicted_matrix_text=None, filepath=None, n_atoms=None, absolute_error_cbar_limit=None):
+    """Interactive Plotly visualization of error matrices."""
+
+    # === Error matrices computation ===
+    absolute_error_matrix = true_matrix - predicted_matrix
+    epsilon = 0.001
+    relative_error_matrix = absolute_error_matrix / (true_matrix + epsilon)*100
+
+    # === Colorbar limits ===
+    vmin = np.min([np.min(true_matrix), np.min(predicted_matrix)])
+    vmax = np.max([np.max(true_matrix), np.max(predicted_matrix)])
+    lim_data = max(abs(vmin), abs(vmax))
+
+    if absolute_error_cbar_limit is None:
+        lim_abs = np.max(np.abs(absolute_error_matrix))
+    else:
+        lim_abs = absolute_error_cbar_limit
+
+    lim_rel = 100.0  # %
+
+    cbar_limits = [lim_data, lim_data, lim_abs, lim_rel]
+
+    # === Titles ===
+    if matrix_label is None:
+        matrix_label = ''
+    titles = [
+        "True " + matrix_label,
+        "Predicted " + matrix_label,
+        "Absolute error (A-B)",
+        f"Relative error (A-B)/(A+{epsilon})"
+    ]
+    cbar_titles = ["eV", "eV", "eV", "%"]
+
+    # === Figure ===
+    cbar_positions = [0.44, 1, 0.44, 1]
+    matrices = [true_matrix, predicted_matrix, absolute_error_matrix, relative_error_matrix]
+
+    fig = make_subplots(
+        rows=2, cols=2,
+        # subplot_titles=titles,
+        horizontal_spacing=0.15,
+        vertical_spacing=0.17
+    )
+
+    for i, matrix in enumerate(matrices):
+        row = i // 2 + 1
+        col = i % 2 + 1
+
+        heatmap = go.Heatmap(
+            z=matrix,
+            colorscale='RdYlBu',
+            zmin=-cbar_limits[i],
+            zmax=cbar_limits[i],
+            colorbar=dict(title=cbar_titles[i], len=0.475, yanchor="middle", y=0.807 - 0.585*(row-1)),
+            colorbar_x = cbar_positions[i]
+        )
+        fig.add_trace(heatmap, row=row, col=col)
+
+    # === Subplot titles ===
+    fig.update_layout(
+        xaxis1=dict(side="top", title_text=titles[0]), yaxis1=dict(autorange="reversed"),
+        xaxis2=dict(side="top", title_text=titles[1]), yaxis2=dict(autorange="reversed"),
+        xaxis3=dict(side="top", title_text=titles[2]), yaxis3=dict(autorange="reversed"),
+        xaxis4=dict(side="top", title_text=titles[3]), yaxis4=dict(autorange="reversed"),
+        margin={"l":0,
+                "r":0,
+                "t":0,
+                "b":0}
+    )
+
+    # === Atomic orbitals blocks grid ===
+    if n_atoms is not None:
+        n_orbitals = 13
+        minor_ticks = np.arange(-0.5, n_orbitals * n_atoms, n_orbitals)
+
+        for i, matrix in enumerate(matrices):
+            row = i // 2 + 1
+            col = i % 2 + 1  # Ensure shapes are added to the correct subplot
+
+            grid_lines = [
+                # Vertical grid lines
+                dict(type="line", x0=x, x1=x, y0=-0.5, y1=n_orbitals * n_atoms - 0.5, line=dict(color="black", width=1))
+                for x in minor_ticks
+            ] + [
+                # Horizontal grid lines
+                dict(type="line", y0=y, y1=y, x0=-0.5, x1=n_orbitals * n_atoms - 0.5, line=dict(color="black", width=1))
+                for y in minor_ticks
+            ]
+
+            # Add each grid line to the corresponding subplot
+            for line in grid_lines:
+                fig.add_shape(line, row=row, col=col)
+
+    # === Text annotations ===
+
+    # Text under predicted matrix
+    if predicted_matrix_text:
+        fig.add_annotation(
+            text=predicted_matrix_text,
+            xref='x2 domain', yref='y2 domain',
+            x=1.1, y=-0.15,
+            showarrow=False,
+            font=dict(size=12),
+            align='right'
+        )
+
+    # Absolute error stats
+    max_absolute_error = np.max(absolute_error_matrix)
+    min_absolute_error = np.min(absolute_error_matrix)
+    fig.add_annotation(
+        text=f"max = {max_absolute_error:.2f} eV, min = {min_absolute_error:.2f} eV",
+        xref='x3 domain', yref='y3 domain',
+        x=0.5, y=-0.07,
+        showarrow=False,
+        font=dict(size=12),
+        align='center'
+    )
+
+    # Relative error stats
+    max_relative_error = np.max(relative_error_matrix)
+    min_relative_error = np.min(relative_error_matrix)
+    fig.add_annotation(
+        text=f"max = {max_relative_error:.2f}%, min = {min_relative_error:.2f}%",
+        xref='x4 domain', yref='y4 domain',
+        x=0.5, y=-0.07,
+        showarrow=False,
+        font=dict(size=12),
+        align='center'
+    )
+
+    # === Layout of the whole figure ===
+    fig.update_layout(
+        height=850,
+        width=800,
+        title_text=figure_title if figure_title else "Matrix Comparison and Errors",
+        title_x=0.5,
+        title_y=0.99,
+        margin=dict(t=100, b=20)
+    )
+
+    # === Output ===
+    if filepath:
+        fig.write_html(filepath)
+    else:
+        fig.show()

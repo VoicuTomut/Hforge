@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class MatrixExtractionHead(nn.Module):
@@ -43,7 +42,7 @@ class MatrixExtractionHead(nn.Module):
 
         return matrix
 
-#TODO: Make it equivariant 
+#TODO: Make it equivariant
 class MessagePassing(nn.Module):
     """
     Message passing layer that updates node and edge features.
@@ -57,27 +56,42 @@ class MessagePassing(nn.Module):
 
         # Combined edge dimension
         edge_combined_dim = edge_radial_dim + edge_angular_dim
-        input_dim = edge_combined_dim + 2*node_dim
+        all_combined_dim = edge_combined_dim + node_dim
 
-        # Node update networks. WEIGHTS MATRIX.
-        self.node_update = nn.Sequential(
-            nn.Linear(node_dim + edge_combined_dim, node_dim),
-            nn.SiLU() #! Change?
+        # First MLP
+        self.mlp1 = nn.Sequential(
+            nn.Linear(all_combined_dim, all_combined_dim),
+            nn.Sigmoid(),
         ).to(self.device)
 
-         # Edge update networks (focus on this as per requirements)
+        # Second MLP
+        dims = torch.linspace(all_combined_dim, node_dim/4, 3, dtype=torch.int32, device=self.device)
+        self.mlp2 = nn.Sequential(
+            nn.Linear(dims[0], dims[1]),
+            nn.ReLU(),
+            nn.Linear(dims[1], dims[2]),
+            nn.ReLU(),
+            nn.Linear(dims[2], int(node_dim/2)),
+            nn.ReLU(),
+            nn.Linear(int(node_dim/2), node_dim),
+        ).to(self.device)
+
+        self.node_linear_self = nn.Sequential(
+            nn.Linear(node_dim, node_dim),
+        ).to(self.device)
+
+        self.node_linear_neigh = nn.Sequential(
+            nn.Linear(node_dim, node_dim),
+        ).to(self.device)
+
+        self.node_activation_fn = nn.Sequential(
+            nn.Sigmoid(),
+        ).to(self.device)
+
+        # Edge update
         self.edge_update = nn.Sequential(
-            nn.Linear(input_dim, int(input_dim/2)),
-            nn.ReLU(),
-            nn.Linear(int(input_dim/2), int(input_dim/4)),
-            nn.ReLU(),
-            nn.Linear(int(input_dim/4), int(input_dim/8)),
-            nn.ReLU(),
-            nn.Linear(int(input_dim/8), int(edge_combined_dim/4)),
-            nn.ReLU(),
-            nn.Linear(int(edge_combined_dim/4), int(edge_combined_dim/2)),
-            nn.ReLU(),
-            nn.Linear(int(edge_combined_dim/2), edge_combined_dim)
+            nn.Linear(edge_combined_dim + 2*node_dim, edge_combined_dim),
+            nn.Sigmoid(),
         ).to(self.device)
 
     def forward(self, node_features, edge_radial, edge_angular, edge_index):
@@ -99,49 +113,42 @@ class MessagePassing(nn.Module):
         src_features = node_features[src]  # [num_edges, node_dim]
         dst_features = node_features[dst]  # [num_edges, node_dim]
 
-        # === Edge feature update ===
+        # === Node feature update - Universal set approximator. ===
 
-        # Concatenate source, destination, and edge features
-        edge_inputs = torch.cat([src_features, dst_features, edge_radial, edge_angular], dim=-1)
-
-        #* Update edge features
-        edge_features_updated = self.edge_update(edge_inputs)
-
-        # === Node feature update - Graph convolutional layer. ===
-
-        # Normalize by the number of neighbours
         messages = torch.zeros(num_nodes, node_features.shape[1] + edge_radial.shape[1] + edge_angular.shape[1], device=self.device)  # [num_nodes, node_dim + edge_combined_dim]
         for i in range(num_edges):
             source_node_idx = src[i] # [1]
             target_node_idx = dst[i] # [1]
 
-            # Form the submessage of each node but normalization.
+            # Form the submessage of each node.
             submessage = torch.cat([src_features[source_node_idx], edge_radial[i], edge_angular[i]], dim=-1)  # [node_dim + edge_combined_dim], a vector.
 
-            # Count the number of neighbours of this current (source) node.
-            num_neighbours = torch.sum(edge_index[1] == source_node_idx).item()
+            # Send the submessage through a MLP
+            submessage = self.mlp1(submessage)
 
             # Sum it to the complete message of the target node with proper normalization.
-            messages[target_node_idx] += submessage / num_neighbours
+            messages[target_node_idx] += submessage
 
-        # "Update" node features (we are still in the aggregation function but we will just add the self submessage to the whole message).
-        # Vector with all number of neighbours of each node
-        num_neighbours_vector = torch.tensor([torch.sum(edge_index[1] == i) for i in range(num_nodes)], device=self.device) # [num_nodes]
-        # Sum to all messages, but only the first node_dim elements (the rest are edge features).
-        messages[:, :node_features.size(1)] += (node_features / torch.sqrt(num_neighbours_vector).unsqueeze(1))
+        # Apply second MLP
+        messages = self.mlp2(messages)
 
-        # Normalize by the number of neighbours of each node
-        messages /= torch.sqrt(num_neighbours_vector).unsqueeze(1)
+        # Update node features
+        node_features_updated = self.node_activation_fn(self.node_linear_self(node_features) + self.node_linear_neigh(messages)) + node_features # Residual connection
 
-        #* Multiply by trainable weights + activation fn.
-        node_features_updated = self.node_update(messages)  # [num_nodes, node_dim + edge_combined_dim]
+        # === Edge feature update ===
+
+        # Concatenate source, destination, and edge features
+        edge_inputs = torch.cat([src_features, dst_features, edge_radial, edge_angular], dim=-1)
+
+        # Update edge features
+        edge_features_updated = self.edge_update(edge_inputs)
 
         return node_features_updated, edge_features_updated
 
 
-class NodeExtractionGraphConvolutional(nn.Module):
+class NodeExtractionUniversalApproximator(nn.Module):
     def __init__(self, config_routine, device='cpu'):
-        super(NodeExtractionGraphConvolutional, self).__init__()
+        super(NodeExtractionUniversalApproximator, self).__init__()
 
         self.device = device
 

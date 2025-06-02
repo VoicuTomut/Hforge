@@ -13,13 +13,20 @@ If you need cuda support, then you have to install torch separatelly. Overwritin
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
 
+## First use
+First you need to download the dataset from HuggingFace. This is done by executing 
+```bash
+python examples/get_dataset_locally.py
+```
+However, this will also convert the dataset to graphs. This conversion depends on the orbitals and the cutoff radius that you want for your model. Thus, everytime you want to change these two parameters you will need to change them in the training_loop_config.yaml file, delete the 'aBN_HSX_graphs' folder and rerun this script.
+
 ## Examples
 
 ### How to use the model in different contexts:
 
 - Run simple inference:
   ```bash
-  python examples/model_inference.py
+  python examples/deprecated_model_inference.py
   ```
 
 - Run a training loop:
@@ -29,21 +36,21 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 - Test the model:
   ```bash
-  python examples/model_show.py
+  python examples/deprecated_model_show.py
   ```
 
 ### Data Management
 
 Download the dataset locally:
 ```bash
-python examples/get_dataset_localy.py
+python examples/get_dataset_locally.py
 ```
 
 ### Graph Conversion
 
 Test conversion to graph:
 ```bash
-python examples/conversion_to_graph.py
+python examples/deprecated_conversion_to_graph.py
 ```
 
 ## Current Status
@@ -65,6 +72,7 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 - [ ] Benchmark with other H generating codes (Ange) (maybe around middle of april)
 - [ ] Investigate if training on 32 atoms can generalize to 64 atoms (similar to 8→32 generalization) ?
 - [ ] Try other PyTorch graph layers to se improve performance ?
+- [ ] Figure out why, when startig training an already trained model, it does not resume the same loss value.
 - -------------------------------------------------------- (from  21 aprilie)
 - [ ] Use E3NN for onsite and hopping extractions
 - [ ] Implement mixed training approach
@@ -72,6 +80,7 @@ At the moment, we are focusing only on Hamiltonian generation. Once we reach goo
 ## Lifecare Todo tasks
 - [x] Implement a parameter to select if you want to begin training from a checkpoint or not
 - [x] Implement facility to resume plotting history when loading previously trained models
+- [ ] Make a different checkpoint directory for each training
 
 ### Additional Tasks
 

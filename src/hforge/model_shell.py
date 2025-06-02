@@ -11,8 +11,11 @@ from e3nn import o3
 from hforge.edge_agregator import EdgeAggregator
 from hforge.edge_extraction import EdgeExtractionBasic
 from hforge.edge_extraction import EdgeExtractionGraphConvolutional
+from hforge.edge_extraction import EdgeExtractionUniversalApproximator
 from hforge.node_extraction import NodeExtractionBasic
 from hforge.node_extraction import NodeExtractionGraphConvolutional
+from hforge.node_extraction import NodeExtractionUniversalApproximator
+from hforge.node_extraction import NodeExtractionUniversalApproximator2
 from hforge.mace.mace_descriptor import MACEDescriptor
 from hforge.encodings import EmbeddingBase
 
@@ -54,6 +57,7 @@ def compute_mace_output_shape(config):
 
 
 class ModelShell(torch.nn.Module):
+    # ! Once the model is initialized, you cannot move it to a different device!
 
     def __init__(self, config_routine, device='cpu'):
         super(ModelShell, self).__init__()
@@ -81,7 +85,8 @@ class ModelShell(torch.nn.Module):
         # We write here all the possible edge extraction classes.
         edge_extraction_class = {
             "EdgeExtractionGraphConvolutional": EdgeExtractionGraphConvolutional,
-            "EdgeExtractionBasic": EdgeExtractionBasic
+            "EdgeExtractionBasic": EdgeExtractionBasic,
+            "EdgeExtractionUniversalApproximator": EdgeExtractionUniversalApproximator,
         }
 
         # Initialize depending on the chosen in the configuration.
@@ -104,7 +109,9 @@ class ModelShell(torch.nn.Module):
         # We write here all the possible node extraction classes.
         node_extraction_class = {
             "NodeExtractionGraphConvolutional": NodeExtractionGraphConvolutional,
-            "NodeExtractionBasic": NodeExtractionBasic
+            "NodeExtractionBasic": NodeExtractionBasic,
+            "NodeExtractionUniversalApproximator": NodeExtractionUniversalApproximator,
+            "NodeExtractionUniversalApproximator2": NodeExtractionUniversalApproximator2,
         }
         config_routine["node_extraction"]["node_extraction_class"] = config_routine["node_extraction"].get("node_extraction_class", "NodeExtractionBasic")
         self.node_extraction = node_extraction_class[config_routine["node_extraction"]["node_extraction_class"]](
@@ -146,6 +153,13 @@ class ModelShell(torch.nn.Module):
 
         # Eliminate self loops from edges:
         model_results["edge_index"] , model_results["edge_description"] = remove_self_loops(model_results["edge_index"], model_results["edge_description"])
+        # print("model_results.keys()= ", model_results.keys()) # dict_keys(['edge_index', 'edge_description', 'node_description'])
+        # print("model_results[edge_index].shape]= ", model_results["edge_index"].shape)
+        # print("model_results[edge_description].shape]= ", model_results["edge_description"].shape)
+        # print("model_results[node_description].shape]= ", model_results["node_description"].shape)
+        # print("graph_data.keys()= ", graph_data.keys())
+        # print("graph_data[pos].shape= ", graph_data["pos"].shape)
+        # print("graph_data[h_on_sites].shape= ", graph_data["h_on_sites"].shape)
 
         return model_results
 

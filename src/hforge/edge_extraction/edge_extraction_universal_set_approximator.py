@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class MatrixExtractionHead(nn.Module):
@@ -14,6 +13,7 @@ class MatrixExtractionHead(nn.Module):
         self.num_orbitals_i = num_orbitals_i
         self.num_orbitals_j = num_orbitals_j
         self.output_dim = num_orbitals_i * num_orbitals_j
+
 
         # Neural network to process the environment descriptor and edge embeddings
         self.mlp = nn.Sequential(
@@ -43,7 +43,7 @@ class MatrixExtractionHead(nn.Module):
 
         return matrix
 
-#TODO: Make it equivariant 
+#TODO: Make it equivariant
 class MessagePassing(nn.Module):
     """
     Message passing layer that updates node and edge features.
@@ -57,27 +57,53 @@ class MessagePassing(nn.Module):
 
         # Combined edge dimension
         edge_combined_dim = edge_radial_dim + edge_angular_dim
-        input_dim = edge_combined_dim + 2*node_dim
+        all_combined_dim = edge_combined_dim + node_dim
 
-        # Node update networks. WEIGHTS MATRIX.
-        self.node_update = nn.Sequential(
-            nn.Linear(node_dim + edge_combined_dim, node_dim),
-            nn.SiLU() #! Change?
+        # First MLP
+        self.mlp1 = nn.Sequential(
+            nn.Linear(all_combined_dim, all_combined_dim),
+            nn.Sigmoid(),
         ).to(self.device)
 
-         # Edge update networks (focus on this as per requirements)
-        self.edge_update = nn.Sequential(
-            nn.Linear(input_dim, int(input_dim/2)),
+        # Second MLP
+        dims = torch.linspace(all_combined_dim, node_dim/4, 3, dtype=torch.int32, device=self.device)
+        self.mlp2 = nn.Sequential(
+            nn.Linear(dims[0], dims[1]),
             nn.ReLU(),
-            nn.Linear(int(input_dim/2), int(input_dim/4)),
+            nn.Linear(dims[1], dims[2]),
             nn.ReLU(),
-            nn.Linear(int(input_dim/4), int(input_dim/8)),
+            nn.Linear(dims[2], int(node_dim/2)),
             nn.ReLU(),
-            nn.Linear(int(input_dim/8), int(edge_combined_dim/4)),
+            nn.Linear(int(node_dim/2), node_dim),
+        ).to(self.device)
+
+        self.node_linear_self = nn.Sequential(
+            nn.Linear(node_dim, node_dim),
+        ).to(self.device)
+
+        self.node_linear_neigh = nn.Sequential(
+            nn.Linear(node_dim, node_dim),
+        ).to(self.device)
+
+        self.node_activation_fn = nn.Sequential(
+            nn.Sigmoid(),
+        ).to(self.device)
+
+        # Edge update
+        self.edge_mlp1 = nn.Sequential(
+            nn.Linear(all_combined_dim, all_combined_dim),
+            nn.Sigmoid()
+        ).to(self.device)
+
+        dims = torch.linspace(all_combined_dim, edge_combined_dim/4, 3, dtype=torch.int32, device=self.device)
+        self.edge_mlp2 = nn.Sequential(
+            nn.Linear(dims[0], dims[1]),
             nn.ReLU(),
-            nn.Linear(int(edge_combined_dim/4), int(edge_combined_dim/2)),
+            nn.Linear(dims[1], dims[2]),
             nn.ReLU(),
-            nn.Linear(int(edge_combined_dim/2), edge_combined_dim)
+            nn.Linear(dims[2], int(edge_combined_dim/2)),
+            nn.ReLU(),
+            nn.Linear(int(edge_combined_dim/2), edge_combined_dim),
         ).to(self.device)
 
     def forward(self, node_features, edge_radial, edge_angular, edge_index):
@@ -99,49 +125,50 @@ class MessagePassing(nn.Module):
         src_features = node_features[src]  # [num_edges, node_dim]
         dst_features = node_features[dst]  # [num_edges, node_dim]
 
-        # === Edge feature update ===
+        # * === Node feature update - Universal set approximator. ===
 
-        # Concatenate source, destination, and edge features
-        edge_inputs = torch.cat([src_features, dst_features, edge_radial, edge_angular], dim=-1)
-
-        #* Update edge features
-        edge_features_updated = self.edge_update(edge_inputs)
-
-        # === Node feature update - Graph convolutional layer. ===
-
-        # Normalize by the number of neighbours
         messages = torch.zeros(num_nodes, node_features.shape[1] + edge_radial.shape[1] + edge_angular.shape[1], device=self.device)  # [num_nodes, node_dim + edge_combined_dim]
         for i in range(num_edges):
             source_node_idx = src[i] # [1]
             target_node_idx = dst[i] # [1]
 
-            # Form the submessage of each node but normalization.
+            # Form the submessage of each node.
             submessage = torch.cat([src_features[source_node_idx], edge_radial[i], edge_angular[i]], dim=-1)  # [node_dim + edge_combined_dim], a vector.
 
-            # Count the number of neighbours of this current (source) node.
-            num_neighbours = torch.sum(edge_index[1] == source_node_idx).item()
+            # Send the submessage through a MLP
+            submessage = self.mlp1(submessage)
 
             # Sum it to the complete message of the target node with proper normalization.
-            messages[target_node_idx] += submessage / num_neighbours
+            messages[target_node_idx] += submessage
 
-        # "Update" node features (we are still in the aggregation function but we will just add the self submessage to the whole message).
-        # Vector with all number of neighbours of each node
-        num_neighbours_vector = torch.tensor([torch.sum(edge_index[1] == i) for i in range(num_nodes)], device=self.device) # [num_nodes]
-        # Sum to all messages, but only the first node_dim elements (the rest are edge features).
-        messages[:, :node_features.size(1)] += (node_features / torch.sqrt(num_neighbours_vector).unsqueeze(1))
+        # Apply second MLP
+        messages = self.mlp2(messages)
 
-        # Normalize by the number of neighbours of each node
-        messages /= torch.sqrt(num_neighbours_vector).unsqueeze(1)
+        # Update node features
+        node_features_updated = self.node_activation_fn(self.node_linear_self(node_features) + self.node_linear_neigh(messages)) + node_features # Residual connection
 
-        #* Multiply by trainable weights + activation fn.
-        node_features_updated = self.node_update(messages)  # [num_nodes, node_dim + edge_combined_dim]
+        # * === Edge feature update ===
+
+        # Concatenate source, destination, and edge features
+        edge_inputs = torch.cat([src_features, dst_features, edge_radial, edge_angular], dim=-1)
+
+        # Update edge features
+        edge_features_updated = torch.zeros_like(torch.cat([edge_radial, edge_angular], dim=-1))
+        for i in range(num_edges):
+            source_node_idx = src[i] # [1]
+            target_node_idx = dst[i] # [1]
+
+            source_input = torch.cat([node_features_updated[source_node_idx], edge_radial[i], edge_angular[i]], dim=-1)
+            target_input = torch.cat([node_features_updated[target_node_idx], edge_radial[i], edge_angular[i]], dim=-1)
+            edge_features_updated[i] += self.edge_mlp2(self.edge_mlp1(source_input) + self.mlp1(target_input))
 
         return node_features_updated, edge_features_updated
 
 
-class NodeExtractionGraphConvolutional(nn.Module):
+class EdgeExtractionUniversalApproximator(nn.Module):
     def __init__(self, config_routine, device='cpu'):
-        super(NodeExtractionGraphConvolutional, self).__init__()
+
+        super(EdgeExtractionUniversalApproximator, self).__init__()
 
         self.device = device
 
@@ -158,15 +185,14 @@ class NodeExtractionGraphConvolutional(nn.Module):
         self.atom_types = list(self.orbitals.keys())
 
         # Determine input dimension from the atomic environment descriptor
-        self.input_dim = config_routine.get("descriptor_dim")
+        # This should match the dimension you're using in your model
+        self.input_dim = config_routine.get("descriptor_dim", 64)
 
-        self.num_orbitals_i = len(self.atom_types)
-
-        # Get edge embedding dimensions for message passing
-        self.edge_radial_dim = config_routine.get("edge_radial_dim")
-        self.edge_angular_dim = config_routine.get("edge_angular_dim")
+        # Get edge embedding dimensions from the embeddings or config
+        self.edge_radial_dim = config_routine.get("edge_radial_dim", 8)
+        self.edge_angular_dim = config_routine.get("edge_angular_dim", 9)
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
-
+        
         # Check if parameters should be shared across layers
         if self.share_parameters:
             self.mp_layers = 1
@@ -179,18 +205,23 @@ class NodeExtractionGraphConvolutional(nn.Module):
             device=self.device
         ) for _ in range(self.mp_layers)]
 
-        # Create extraction heads for each atom type (for on-site matrices)
+        # Create extraction heads for each atom-atom pair
         self.extraction_heads = nn.ModuleDict()
-        for atom in self.atom_types:
-            # For on-site terms, we need a square matrix of size orbitals[atom] × orbitals[atom]
-            num_orbitals = self.orbitals[atom]
+        for atom1 in self.atom_types:
+            self.extraction_heads[str(atom1)] = nn.ModuleDict()
+            for atom2 in self.atom_types:
+                # For each atom pair (i,j), we need a head that produces an orbitals_i × orbitals_j matrix
 
-            self.extraction_heads[str(atom)] = MatrixExtractionHead(
-                input_dim=self.input_dim,  # Only need the node's own features
-                num_orbitals_i=num_orbitals,
-                num_orbitals_j=num_orbitals,
-                hidden_dim=config_routine.get("hidden_dim_matrix_extraction", 128)
-            )
+                head_input_dim = 2 * self.input_dim + self.edge_combined_dim  # 2 nodes + edge features
+                num_orbitals_i = self.orbitals[atom1]
+                num_orbitals_j = self.orbitals[atom2]
+
+                self.extraction_heads[str(atom1)][str(atom2)] = MatrixExtractionHead(
+                    input_dim=head_input_dim,
+                    num_orbitals_i=num_orbitals_i,
+                    num_orbitals_j=num_orbitals_j,
+                    hidden_dim=config_routine.get("hidden_dim_matrix_extraction", 128)
+                )
 
     def forward(self, graph_data, embeddings, atomic_env_descriptor):
         """
@@ -199,12 +230,12 @@ class NodeExtractionGraphConvolutional(nn.Module):
             embeddings: Node and edge embeddings
             atomic_env_descriptor: Environment descriptor for each atom
         Returns:
-            Dictionary containing on-site matrices as a tensor
+            Dictionary containing hopping matrices as a tensor
         """
         # Extract node features from the environment descriptor
         node_features = atomic_env_descriptor['nodes']['node_env']
 
-        # Extract edge features from embeddings for message passing
+        # Extract edge features from embeddings
         edge_radial = embeddings['edges']['radial_embedding']
         edge_angular = embeddings['edges']['angular_embedding']
 
@@ -236,23 +267,35 @@ class NodeExtractionGraphConvolutional(nn.Module):
                 updated_edge_radial = updated_edge_features[:, :self.edge_radial_dim]
                 updated_edge_angular = updated_edge_features[:, self.edge_radial_dim:]
 
-        # 2. Generate on-site matrices for each atom
-        on_sites = []
+        # 2. Generate hopping matrices for each edge
+        hoppings = []
 
-        # Iterate through all nodes in the graph
-        for i, atom_idx in enumerate(graph_data.x):
-            # Get the atom type for this node
-            atom_type = self.atom_types[int(atom_idx.item())]
+        # Process each edge in the graph
+        for edge_idx in range(edge_index.size(1)):
+            # Get the source and target nodes
+            src, dst = edge_index[0, edge_idx], edge_index[1, edge_idx]
 
-            # Use the extraction head for this atom type
-            extraction_head = self.extraction_heads[str(atom_type)]
+            # Get the atom types
+            src_atom_type = self.atom_types[int(graph_data.x[src].item())]
+            dst_atom_type = self.atom_types[int(graph_data.x[dst].item())]
 
-            # Generate the on-site matrix using only the node's updated features
-            on_site_matrix = extraction_head(updated_node_features[i])
-            on_sites.append(on_site_matrix)
+            # Concatenate source node, destination node, and edge features
+            edge_input = torch.cat([
+                updated_node_features[src],
+                updated_node_features[dst],
+                updated_edge_radial[edge_idx],
+                updated_edge_angular[edge_idx]
+            ], dim=-1)
 
-        # Convert list of on-site matrices to a single tensor
-        on_site_tensor = torch.stack(on_sites) if on_sites else torch.tensor([])
+            # Use the appropriate extraction head for this atom pair
+            hopping_head = self.extraction_heads[str(src_atom_type)][str(dst_atom_type)]
 
+            # Generate the hopping matrix
+            hopping_matrix = hopping_head(edge_input)
+            hoppings.append(hopping_matrix)
 
-        return on_site_tensor
+        # Convert list of hopping matrices to a single tensor
+        # This stacks all matrices along a new first dimension
+        hopping_tensor = torch.stack(hoppings) if hoppings else torch.tensor([])
+
+        return  hopping_tensor

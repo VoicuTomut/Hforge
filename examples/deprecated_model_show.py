@@ -72,10 +72,10 @@ def main():
         7: 13,
         8: 13,
     }
-    dataset, _ = prepare_dataset(
+    dataset, _, _ = prepare_dataset(
         dataset_path=dataset_path,
         orbitals=orbitals,
-        split_ratio=0.85,  # Slight increase in training data
+        training_split_ratio=0.85,  # Slight increase in training data
         batch_size=1,  # Increased batch size for better gradient estimates
         cutoff=3.0,
         max_samples=None  # Use full dataset for better training
@@ -176,10 +176,10 @@ def main():
         print("node_loss:", node_loss)
 
 
-        # Create the 4-panel comparison plot
+        # Create the 4-panel comparison plots
         fig = plot_comparison_matrices(original_h*100, predicted_h, save_path="./EXAMPLE_info/matrix_comparison_New_{i}.html")
 
-        # Display the plot
+        # Display the plots
         fig.show()
 if __name__ == "__main__":
     main()

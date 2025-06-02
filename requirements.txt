@@ -11,3 +11,5 @@ torch_ema
 torchmetrics
 h5py
 plotly
+prettytable
+matplotlib

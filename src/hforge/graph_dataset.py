@@ -100,12 +100,76 @@ class AtomicGraphDataset(Dataset):
         return torch.load(data_path)
 
 
+import os
+import torch
+from torch.utils.data import Dataset
+import random
+
+class LazyGraphDataset(Dataset):
+    def __init__(self, parent_dir, max_samples=None, seed=42):
+        # === Local import to avoid circular import issue ===
+        from hforge.data_management.data_processing import get_stratified_dataset
+        from hforge.data_management.data_processing import get_amount_to_stratify
+
+        # === Create a list of paths to all the files ===
+        self.files = []
+        for folder in os.listdir(parent_dir):
+            path_to_graphs = os.path.join(parent_dir, folder)
+            self.files.append(sorted([os.path.join(path_to_graphs, f) for f in os.listdir(path_to_graphs) if f.endswith(".pt")]))
+
+        # If there is no maximum cap, just flatten
+        if max_samples is None:
+            # Flatten and shuffle
+            self.files = self.flatten(self.files)
+
+        # If there is a max cap, stratify.
+        else:
+            # Get how many of each set
+            amount_list = get_amount_to_stratify(self.files, max_samples)
+
+            # Get stratified list
+            for i, files in enumerate(self.files):
+                self.files[i] = files[:amount_list[i]]
+
+            # Some prints:
+            n_list = [len(torch.load(type[0], weights_only=False)["x"]) for type in self.files]
+            print("Sample distribution in the dataset w.r.t. the number of atoms:")
+            print(f"{n_list}")
+            print([len(self.files[i]) for i in range(len(self.files))])
+
+            # Flatten
+            self.files = self.flatten(self.files)
+
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, idx):
+        graph = torch.load(self.files[idx], weights_only=False)
+        return graph
+
+    @staticmethod
+    def flatten(xss):
+        return [x for xs in xss for x in xs]
+
+
+
+
 def graph_from_row(row,orbitals, cutoff=3.0):
     # Now let's pass it tru mace:
+
+    # print(row.keys())
+    # print("row[nr_atoms]: ", row["nr_atoms"])
+    # Get the atomic positions
+    # print(row)
+    # print(row["atomic_positions"])
     positions = np.array(row["atomic_positions"])
-    # print("positions.shape:", positions.shape)
+    # print("positions.shape:", positions.shape) # [nr_atoms, 3]; each atom has 3D position
+
+    # Get the cell (described by the lattice vectors)
     cell = np.array(row["lattice_vectors"])
-    # print("cell.shape:", cell.shape)
+    # print("cell.shape:", cell.shape) # [3,3]; 3 lattice vectors that are 3D.
+
     edge_index, shifts, unit_shifts, cell = get_neighborhood(positions=positions,
                                                              cutoff=cutoff,
                                                              pbc=(True, True, True),
@@ -122,6 +186,7 @@ def graph_from_row(row,orbitals, cutoff=3.0):
     # print("h matrix:", row['h_matrix'])
     hm = np.array(row['h_matrix'])
     # print("h matrix.shape:", hm.shape)
+
     sm = np.array(row['h_matrix'])
     # print("s matrix.shape:", sm.shape)
 
@@ -145,5 +210,8 @@ def graph_from_row(row,orbitals, cutoff=3.0):
                              h_hop=h_hop,
                              s_on_sites=s_on_sites,
                              s_hop=s_hop)
+
+    # print("row_graph[h_on_sites].shape= ", row_graph["h_on_sites"].shape)
+    # print("row_graph[h_hop].shape= ", row_graph["h_hop"].shape)
 
     return row_graph

@@ -1,28 +1,44 @@
+from prettytable import PrettyTable
+import os
+
 def main():
-    dict = {"uno":1, "dos":2}
-    a = dict.keys()
-    # print(a)
+    print(4 / 2)
+    print( 5 / 2)
+    print( 5 // 2)
+    print( 5 % 2)
 
-    b = list(range(10))
-    # print(b[2:])
+    table = PrettyTable(["Type", "Last model save", "New prediction"])
+    print(table)
 
-    # import random
-    # b = [1,2,3,4,5,6,7,8,9]
+    a = "angel"
+    end = None
+    start = None
+    print(a[start:end])
 
-    # # random.seed(4)
-    # random.Random(4).shuffle(b)
-    # print("With seed:", b)
+    folder = os.path.basename(os.path.normpath('/folderA/folderB/folderC/folderD/'))
+    print(folder)
 
-    # # random.seed()
-    # random.shuffle(b)
-    # print("With no seed:", b)
+    import torch
 
-    import numpy as np
-    epsilon = 1e-10
-    original_h = np.random.rand(10, 10)*1e-9
-    print(original_h)
-    mask_small = np.abs(original_h) < epsilon
-    print(mask_small)
+    torch.manual_seed(42)  # Set a fixed seed
+
+    subset_size = 10  # Example subset size
+    dataset_size = 100  # Example dataset size
+
+    # Generate random indices twice with the same seed
+    indices1 = torch.randperm(dataset_size)[:subset_size]
+    torch.manual_seed(42)
+    indices2 = torch.randperm(dataset_size)[:subset_size]
+
+    print("First set of indices:", indices1)
+    print("Second set of indices:", indices2)
+
+    # Check if the generated indices are identical
+    print("Reproducible:", torch.equal(indices1, indices2))
+
+    a = torch.tensor([1, 2, 3], device="cuda")
+    b = torch.tensor([4, 5, 6])
+    print(a.device)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,9 @@ import os
 import yaml
 
 # Local application imports
+from hforge.data_management.dataset_load import prepare_dataloaders, prepare_dataset
 from hforge.model_shell import ModelShell
+from hforge.utils.importing_facilities import load_config
 
 
 #! DEPRECATED:
@@ -46,25 +48,11 @@ def load_model(model, optimizer=None, path="best_model.pt", device='cpu'):
 
     return model, optimizer, epoch, history
 
-def load_model_and_dataset_from_directory(directory: str, model_filename: str, weights_only=True, device='cpu', return_datasets=False, return_dataloaders=False):
-    """
-    Load a .pt model file located inside the specified directory.
-    As the .yaml configuration file specifies the dataset configuration, return also the corresponding datasets/dataloaders.
-
-    Args:
-        directory:
-        model_filename:
-        weights_only:
-        device:
-
-    Returns:
-
-    """
+def load_model_from_directory(directory: str, model_filename: str, weights_only=True, device='cpu'):
     # === Lazy import to avoid circular import error ===
     from hforge.utils import get_object_from_module
     # === Load configuration ===
-    with open(directory + r"\training_config.yaml", "r") as f:
-        config = yaml.safe_load(f)
+    config = load_config(directory + "/training_config.yaml")
 
     # === Model Configuration ===
     model_config = config["model"]
@@ -81,6 +69,26 @@ def load_model_and_dataset_from_directory(directory: str, model_filename: str, w
     # === Load other interesting parameters
     history = checkpoint.get('history', {})
 
+    return model, history, config
+
+def load_model_and_dataset_from_directory(directory: str, model_filename: str, weights_only=True, device='cpu', return_datasets=False, return_dataloaders=False):
+    """
+    Load a .pt model file located inside the specified directory.
+    As the .yaml configuration file specifies the dataset configuration, return also the corresponding datasets/dataloaders.
+
+    Args:
+        directory:
+        model_filename:
+        weights_only:
+        device:
+
+    Returns:
+
+    """
+    # === Load the model ===
+    model, history, config = load_model_from_directory(directory, model_filename, weights_only=weights_only, device=device)
+
+    # ! DEPRECATED:
     # === Load the dataset ===
     # Loading the dataset is expensive, so first we check if we need it.
     if return_datasets or return_dataloaders:

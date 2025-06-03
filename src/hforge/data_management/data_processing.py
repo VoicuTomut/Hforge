@@ -2,7 +2,7 @@ import os
 from itertools import cycle
 
 import torch
-from hforge.graph_dataset import graph_from_row
+from hforge.graph_dataset import graph_from_row, graph_from_row_supercell
 
 def circular_iterate(n_types, available_samples_list, initial_samples_list, max_samples):
     """Needed for the below function"""
@@ -97,7 +97,7 @@ def preprocess_and_save_graphs(datasets, orbitals, parent_output_path, cutoff=4.
         # Save all graphs of this type in this directory
         count = 0
         for i, row in enumerate(dataset):
-            graph = graph_from_row(row, orbitals, cutoff=cutoff)
+            graph = graph_from_row_supercell(row, orbitals, cutoff=cutoff)
             torch.save(graph, os.path.join(path, f"graph_{n_atoms}atoms_{i:04d}.pt"))
             count += 1
 

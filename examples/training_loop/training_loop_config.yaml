@@ -1,12 +1,12 @@
-device: "cuda"
-results_dir: "example_results/usetapprox_2mp_sharing_mse_mean_costfn_resume"
+device: "cuda:1"
+results_dir: "example_results/supercell_usetapprox_2mp_sharing_mse_mean_costfn"
 dataset:
   path: "./Data/aBN_HSX"
   training_split_ratio: 0.80
   test_split_ratio: 0.50
-  batch_size: 160
+  batch_size: 30
   cutoff: 3.0
-  max_samples: null
+  max_samples: 100
   seed: 42
 
 orbitals:
@@ -20,7 +20,7 @@ orbitals:
   8: 13
 
 model:
-  path_trained_model: "pre-trained_models/usetapprox_2mp_sharing_mse_mean_costfn/train_best_model.pt"
+  path_trained_model: null
   avg_num_neighbors: 8
   nr_bits: 10
 
@@ -110,9 +110,9 @@ trainer:
   use_comet: false
   live_plot: true
   plot_update_freq: 1
-  plot_matrices_freq: 200
+  plot_matrices_freq: null
   grad_clip_value: 0.1
-  num_epochs: 12000
+  num_epochs: 3000
   filename: "best_model.pt"
 
 cost_function:

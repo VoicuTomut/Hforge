@@ -12,7 +12,7 @@ from hforge.utils import load_config
 
 def main():
     # Load the dataset
-    dataset = load_dataset("AndreiVoicuT/aBN_HSX")
+    dataset = load_dataset("alapena/aBN_HSX")
     print(dataset)
 
     # Save the dataset to disk

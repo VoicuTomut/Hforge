@@ -2,7 +2,7 @@ import numpy as np
 import os
 import torch
 from torch_geometric.data import Data, Dataset
-from hforge.data_preproces import decompose_matrix,preprocess_edges
+from hforge.data_preproces import decompose_matrix, decompose_matrix_supercell, deserialize_csr_matrix,preprocess_edges
 from hforge.neighbours import get_neighborhood
 
 
@@ -215,3 +215,41 @@ def graph_from_row(row,orbitals, cutoff=3.0):
     # print("row_graph[h_hop].shape= ", row_graph["h_hop"].shape)
 
     return row_graph
+
+def graph_from_row_supercell(row, orbitals, cutoff):
+    """Creates a graph from the inputed dataset row. This function is made for the upgraded version of the dataset, in which the hamiltonian and overlap matrices are not square matrices and are serialized.
+    Args:
+        row (dict): A dictionary containing the data for a single row of the dataset.
+        orbitals (dict): A list of orbitals to be used in the graph, mapping the atomic type to the number of orbitals
+        cutoff (float): The cutoff distance for the edges in the graph.
+    Returns:
+        Data: A PyTorch Geometric Data object representing the graph.
+    """
+
+    # === Extract the information from row ===
+    positions = np.array(row["atomic_positions"])
+    cell = np.array(row["lattice_vectors"])
+    edge_index, shifts, unit_shifts, cell = get_neighborhood(positions=positions,
+                                                             cutoff=cutoff,
+                                                             pbc=(True, True, True),
+                                                             cell=cell,
+                                                             true_self_interaction=False)
+    # ? Frozen set
+    proces_edges = preprocess_edges(edge_index)
+
+    # Extract the hamiltonian and overlap matrices
+    h_matrix = row['h_matrix']
+    s_matrix = row['s_matrix']
+
+    h_matrix = deserialize_csr_matrix(h_matrix)
+    s_matrix = deserialize_csr_matrix(s_matrix)
+
+    h_on_sites, h_hop = decompose_matrix_supercell(system_mat=h_matrix,
+                                         orbitals=orbitals,
+                                         elements_z=row["atomic_types_z"],
+                                         proces_edges=proces_edges)
+    s_on_sites, s_hop = decompose_matrix_supercell(system_mat=s_matrix,
+                                         orbitals=orbitals,
+                                         elements_z=row["atomic_types_z"],
+                                         proces_edges=proces_edges)
+    a

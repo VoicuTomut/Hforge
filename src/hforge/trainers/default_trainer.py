@@ -352,7 +352,7 @@ class Trainer:
                         n_atoms = len(sample["x"])
                         filepath = f"{results_directory}/{dataset_type[j]}_atoms_{n_atoms}_sample_{idx_sample}_epoch_{epoch}.png"
                         title = f"Results of sample {idx_sample} from {dataset_type[j]} dataset (seed 4). There are {n_atoms} in the unit cell."
-                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100\nMSE evaluation:     {loss.item():.2f} eV²·100"
+                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history['train_loss'][-1]:.2f} eV²·100\nMSE evaluation:     {loss.item():.2f} eV²·100"
                         plot_error_matrices(original_h.cpu().numpy(),
                                             predicted_h.cpu().numpy() / 100,
                                             filepath=filepath,
@@ -362,7 +362,7 @@ class Trainer:
                                             predicted_matrix_text=predicted_matrix_text
                                             )
                         filepath = f"{results_directory}/{dataset_type[j]}_atoms_{n_atoms}_sample_{idx_sample}_epoch_{epoch}.html"
-                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history["train_loss"][-1]:.2f} eV²·100<br>MSE evaluation:     {loss.item():.2f} eV²·100"
+                        predicted_matrix_text = f"Saved training loss at epoch {epoch}:     {self.history['train_loss'][-1]:.2f} eV²·100<br>MSE evaluation:     {loss.item():.2f} eV²·100"
                         plot_error_matrices_interactive(original_h.cpu().numpy(),
                                             predicted_h.cpu().numpy() / 100,
                                             filepath=filepath,

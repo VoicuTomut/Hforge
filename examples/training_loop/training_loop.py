@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import  CosineAnnealingWarmRestarts
 
 from hforge.utils import load_config, get_object_from_module
-from hforge.utils.model_load import load_model
+from hforge.utils.model_load import initialize_mode, load_model
 
 try:
     from comet_ml import Experiment
@@ -74,11 +74,7 @@ def main():
 
     # === Model Configuration ===
     model_config = config["model"]
-    # Inject classes into model config (since YAML can't store class references)
-    model_config["atomic_descriptors"]["interaction_cls_first"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls_first"], module='hforge.mace.modules')
-    model_config["atomic_descriptors"]["interaction_cls"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls"], module='hforge.mace.modules')
-
-    model = ModelShell(model_config, device=device).to(device)
+    model = initialize_mode(model_config, device=device)
 
     # === Model loading ===
     path_trained_model = model_config["path_trained_model"]

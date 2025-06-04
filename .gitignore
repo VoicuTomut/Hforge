@@ -1,5 +1,6 @@
 # Ignore python virtual environment directory
 .venv
+.venv_wsl
 # Ignore data directory
 Data
 # Ignore checkpoints

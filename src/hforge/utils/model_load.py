@@ -48,17 +48,32 @@ def load_model(model, optimizer=None, path="best_model.pt", device='cpu'):
 
     return model, optimizer, epoch, history
 
-def load_model_from_directory(directory: str, model_filename: str, weights_only=True, device='cpu'):
+def initialize_mode(model_config, device='cpu'):
+    """
+    Initialize the model based on the provided configuration.
+
+    Args:
+        model_config: Configuration dictionary for the model
+        device: Device to initialize the model on ('cpu' or 'cuda')
+
+    Returns:
+        ModelShell instance initialized with the given configuration
+    """
     # === Lazy import to avoid circular import error ===
     from hforge.utils import get_object_from_module
+
+    # === Model Configuration ===
+    model_config["atomic_descriptors"]["interaction_cls_first"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls_first"])
+    model_config["atomic_descriptors"]["interaction_cls"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls"])
+
+    return ModelShell(model_config, device=device).to(device)
+
+def load_model_from_directory(directory: str, model_filename: str, weights_only=True, device='cpu'):
     # === Load configuration ===
     config = load_config(directory + "/training_config.yaml")
 
-    # === Model Configuration ===
-    model_config = config["model"]
-    model_config["atomic_descriptors"]["interaction_cls_first"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls_first"])
-    model_config["atomic_descriptors"]["interaction_cls"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls"])
-    model = ModelShell(model_config, device=device).to(device)
+    # === Model Initialization ===
+    model = initialize_mode(config["model"], device=device)
 
     # === Load the model ===
     model_filename = model_filename

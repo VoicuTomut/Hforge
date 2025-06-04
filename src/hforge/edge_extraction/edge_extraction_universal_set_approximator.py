@@ -166,31 +166,31 @@ class MessagePassing(nn.Module):
 
 
 class EdgeExtractionUniversalApproximator(nn.Module):
-    def __init__(self, config_routine, device='cpu'):
+    def __init__(self, model_config, device='cpu'):
 
         super(EdgeExtractionUniversalApproximator, self).__init__()
 
         self.device = device
 
         # Get the number of layers
-        self.mp_layers = config_routine.get("mp_layers", 1)  # Default to 1 if not specified
+        self.mp_layers = model_config.get("mp_layers", 1)  # Default to 1 if not specified
 
         # Share parameters across layers or not
-        self.share_parameters = config_routine.get("share_parameters", False)  # Default to False if not specified
+        self.share_parameters = model_config.get("share_parameters", False)  # Default to False if not specified
 
         # Get the orbital information
-        self.orbitals = config_routine["orbitals"]
+        self.orbitals = model_config["orbitals"]
 
         # Get the unique atom types
         self.atom_types = list(self.orbitals.keys())
 
         # Determine input dimension from the atomic environment descriptor
         # This should match the dimension you're using in your model
-        self.input_dim = config_routine.get("descriptor_dim", 64)
+        self.input_dim = model_config.get("descriptor_dim", 64)
 
         # Get edge embedding dimensions from the embeddings or config
-        self.edge_radial_dim = config_routine.get("edge_radial_dim", 8)
-        self.edge_angular_dim = config_routine.get("edge_angular_dim", 9)
+        self.edge_radial_dim = model_config.get("edge_radial_dim", 8)
+        self.edge_angular_dim = model_config.get("edge_angular_dim", 9)
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
         
         # Check if parameters should be shared across layers
@@ -220,7 +220,7 @@ class EdgeExtractionUniversalApproximator(nn.Module):
                     input_dim=head_input_dim,
                     num_orbitals_i=num_orbitals_i,
                     num_orbitals_j=num_orbitals_j,
-                    hidden_dim=config_routine.get("hidden_dim_matrix_extraction", 128)
+                    hidden_dim=model_config.get("hidden_dim_matrix_extraction", 128)
                 )
 
     def forward(self, graph_data, embeddings, atomic_env_descriptor):

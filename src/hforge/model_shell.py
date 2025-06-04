@@ -60,40 +60,40 @@ def compute_mace_output_shape(config):
 class ModelShell(torch.nn.Module):
     # ! Once the model is initialized, you cannot move it to a different device!
 
-    def __init__(self, config_routine, device='cpu'):
+    def __init__(self, model_config, device='cpu'):
         super(ModelShell, self).__init__()
 
-        self.embedding=EmbeddingBase(config_routine["embedding"])
+        self.embedding=EmbeddingBase(model_config["embedding"])
 
-        config_routine["atomic_descriptors"]["radial_embedding.out_dim"]=self.embedding.radial_embedding.out_dim
-        max_ell=config_routine["embedding"]["max_ell"]
-        config_routine["atomic_descriptors"]["angular_embedding.out_dim"] = sum(2 * l + 1 for l in range(max_ell + 1))
-        self.atomic_descriptors=MACEDescriptor(config_routine["atomic_descriptors"])
+        model_config["atomic_descriptors"]["radial_embedding.out_dim"]=self.embedding.radial_embedding.out_dim
+        max_ell=model_config["embedding"]["max_ell"]
+        model_config["atomic_descriptors"]["angular_embedding.out_dim"] = sum(2 * l + 1 for l in range(max_ell + 1))
+        self.atomic_descriptors=MACEDescriptor(model_config["atomic_descriptors"])
 
 
-        self.edge_aggregator=EdgeAggregator(edge_dim_radial=config_routine["atomic_descriptors"]["radial_embedding.out_dim"],
-                                          edge_dim_angular= config_routine["atomic_descriptors"]["angular_embedding.out_dim"],
+        self.edge_aggregator=EdgeAggregator(edge_dim_radial=model_config["atomic_descriptors"]["radial_embedding.out_dim"],
+                                          edge_dim_angular= model_config["atomic_descriptors"]["angular_embedding.out_dim"],
                                           hidden_dim=5,
                                           num_layers=3)
 
-        config_routine["edge_extraction"]["edge_radial_dim"]=config_routine["atomic_descriptors"]["radial_embedding.out_dim"]
-        config_routine["edge_extraction"]["edge_angular_dim"] = config_routine["atomic_descriptors"][
+        model_config["edge_extraction"]["edge_radial_dim"]=model_config["atomic_descriptors"]["radial_embedding.out_dim"]
+        model_config["edge_extraction"]["edge_angular_dim"] = model_config["atomic_descriptors"][
             "angular_embedding.out_dim"]
-        features = compute_mace_output_shape( config_routine["atomic_descriptors"])
-        config_routine["edge_extraction"]["descriptor_dim"]=features
+        features = compute_mace_output_shape( model_config["atomic_descriptors"])
+        model_config["edge_extraction"]["descriptor_dim"]=features
 
 
         # === Initialize edge extraction ===
-        self.edge_extraction = get_object_from_module(config_routine["edge_extraction"].get("edge_extraction_class", "EdgeExtractionBasic"), 'hforge.edge_extraction')(config_routine["edge_extraction"], device = device)
+        self.edge_extraction = get_object_from_module(model_config["edge_extraction"].get("edge_extraction_class", "EdgeExtractionBasic"), 'hforge.edge_extraction')(model_config["edge_extraction"], device = device)
         
         # === Initialize node extraction ===
-        config_routine["node_extraction"]["edge_radial_dim"] = config_routine["atomic_descriptors"]["radial_embedding.out_dim"]
-        config_routine["node_extraction"]["edge_angular_dim"] = config_routine["atomic_descriptors"]["angular_embedding.out_dim"]
-        config_routine["node_extraction"]["descriptor_dim"] = features
+        model_config["node_extraction"]["edge_radial_dim"] = model_config["atomic_descriptors"]["radial_embedding.out_dim"]
+        model_config["node_extraction"]["edge_angular_dim"] = model_config["atomic_descriptors"]["angular_embedding.out_dim"]
+        model_config["node_extraction"]["descriptor_dim"] = features
 
-        config_routine["node_extraction"]["node_extraction_class"] = config_routine["node_extraction"].get("node_extraction_class", "NodeExtractionBasic")
+        model_config["node_extraction"]["node_extraction_class"] = model_config["node_extraction"].get("node_extraction_class", "NodeExtractionBasic")
 
-        self.node_extraction = get_object_from_module(config_routine["node_extraction"]["node_extraction_class"], 'hforge.node_extraction')(config_routine["node_extraction"], device = device)
+        self.node_extraction = get_object_from_module(model_config["node_extraction"]["node_extraction_class"], 'hforge.node_extraction')(model_config["node_extraction"], device = device)
 
         self.global_extraction=None
 

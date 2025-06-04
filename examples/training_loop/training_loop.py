@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import  CosineAnnealingWarmRestarts
 
 from hforge.utils import load_config, get_object_from_module
-from hforge.utils.model_load import initialize_mode, load_model
+from hforge.utils.model_load import initialize_model, load_model
 
 try:
     from comet_ml import Experiment
@@ -74,7 +74,7 @@ def main():
 
     # === Model Configuration ===
     model_config = config["model"]
-    model = initialize_mode(model_config, device=device)
+    model = initialize_model(model_config, device=device)
 
     # === Model loading ===
     path_trained_model = model_config["path_trained_model"]

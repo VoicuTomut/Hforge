@@ -6,6 +6,7 @@ import base64
 import io
 
 from scipy import sparse
+import torch
 
 
 def preprocess_edges(edge_list):
@@ -100,7 +101,7 @@ def decompose_matrix_supercell(system_mat, orbitals, elements_z, processed_edges
     on_sites = []
     hoppings = []
     i, j = 0, 0
-    print("system_mat.shape[1] // sum(orbitals.values()) = ", system_mat.shape[1] // sum(orbitals.values()))
+    # / print("system_mat.shape[1] // sum(orbitals.values()) = ", system_mat.shape[1] // sum(orbitals.values()))
     for a, a_z in enumerate(elements_z):
 
         for cell_idx in range(system_mat.shape[1] // sum(orbitals.values())): #Iterate through unit cells
@@ -127,8 +128,8 @@ def decompose_matrix_supercell(system_mat, orbitals, elements_z, processed_edges
         i += orbitals[a_z] # Move to the next block in the column
 
     # Once we have extracted all th blocks, we can convert them to sparse format (COO).
-    on_sites = [m.to_sparse() for m in on_sites]  # Convert each on-site matrix to sparse format
-    hoppings = [m.to_sparse() for m in hoppings]  # Convert each hopping matrix to sparse format
+    # on_sites = [m.to_sparse() for m in on_sites]  # Convert each on-site matrix to sparse format
+    # hoppings = [m.to_sparse() for m in hoppings]  # Convert each hopping matrix to sparse format
 
     return on_sites, hoppings
 

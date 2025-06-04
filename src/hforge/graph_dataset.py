@@ -24,6 +24,43 @@ def create_graph(atomic_numbers, atomic_coordinates, edge_index,shifts, h_on_sit
     x = torch.tensor(atomic_numbers, dtype=torch.float).view(-1, 1)  # Node atomic numbers as features
     pos = torch.tensor(atomic_coordinates, dtype=torch.float)  # Node positions
     edge_index = torch.tensor(edge_index, dtype=torch.long)  # Edge connections
+    h_on_sites = torch.stack([torch.from_numpy(m).to_sparse() for m in h_on_sites])  # Node on-site Hamiltonian
+    s_on_sites = torch.stack([torch.from_numpy(m).to_sparse() for m in s_on_sites])  # Node on-site overlap
+    h_hop = torch.stack([torch.from_numpy(m).to_sparse() for m in h_hop])  # Edge hopping Hamiltonian
+    s_hop = torch.stack([torch.from_numpy(m).to_sparse() for m in s_hop])  # Edge hopping overlap
+    shifts = torch.tensor(np.array(shifts), dtype=torch.float)
+
+    # Create a graph data object
+    data = Data(
+        x=x,
+        pos=pos,
+        edge_index=edge_index,
+        shifts=shifts,
+        h_on_sites=h_on_sites,
+        s_on_sites=s_on_sites,
+        h_hop=h_hop,
+        s_hop=s_hop,
+    )
+    return data
+
+def create_graph_supercell(atomic_numbers, atomic_coordinates, edge_index,shifts, h_on_sites, h_hop, s_on_sites, s_hop):
+    """
+    Create a graph object with the given properties.
+    Args:
+        atomic_numbers (list or array): Atomic numbers for the nodes.
+        atomic_coordinates (list or array): 3D coordinates of each node.
+        edge_index (list or array): Edge connections between nodes.
+        h_on_sites (list or array): Hamiltonian on-site terms for nodes.
+        h_hop (list or array): Hamiltonian hopping terms for edges.
+        s_on_sites (list or array): Overlap matrix on-site terms for nodes.
+        s_hop (list or array): Overlap matrix hopping terms for edges.
+    Returns:
+        Data: A PyTorch Geometric Data object.
+    """
+    # Convert inputs to tensors
+    x = torch.tensor(atomic_numbers, dtype=torch.float).view(-1, 1)  # Node atomic numbers as features
+    pos = torch.tensor(atomic_coordinates, dtype=torch.float)  # Node positions
+    edge_index = torch.tensor(edge_index, dtype=torch.long)  # Edge connections
     h_on_sites = torch.tensor(np.array(h_on_sites), dtype=torch.float)  # Node on-site Hamiltonian
     s_on_sites = torch.tensor(np.array(s_on_sites), dtype=torch.float)  # Node on-site overlap
     h_hop = torch.tensor(np.array(h_hop), dtype=torch.float)  # Edge hopping Hamiltonian
@@ -252,4 +289,15 @@ def graph_from_row_supercell(row, orbitals, cutoff):
                                          orbitals=orbitals,
                                          elements_z=row["atomic_types_z"],
                                          processed_edges=processed_edges)
-    a
+    
+    row_graph = create_graph(atomic_numbers=row["atomic_types_z"],
+                             atomic_coordinates=positions,
+                             edge_index=edge_index,
+                             shifts=shifts,
+                             h_on_sites=h_on_sites,
+                             h_hop=h_hop,
+                             s_on_sites=s_on_sites,
+                             s_hop=s_hop)
+    
+    
+    return row_graph

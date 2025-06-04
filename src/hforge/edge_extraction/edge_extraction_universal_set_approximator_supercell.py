@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from hforge.matrix_extraction_heads import MatrixExtractionHeadSupercell
+from hforge.matrix_extraction_heads import MatrixExtractionHeadEdgeConvolutional
 
 #TODO: Make it equivariant
 class MessagePassing(nn.Module):
@@ -176,7 +176,7 @@ class EdgeExtractionUniversalApproximator(nn.Module):
                 num_orbitals_i = self.orbitals[atom1]
                 num_orbitals_j = self.orbitals[atom2]
 
-                self.extraction_heads[str(atom1)][str(atom2)] = MatrixExtractionHeadSupercell(
+                self.extraction_heads[str(atom1)][str(atom2)] = MatrixExtractionHeadEdgeConvolutional(
                     input_dim=head_input_dim,
                     num_orbitals_i=num_orbitals_i,
                     num_orbitals_j=num_orbitals_j,

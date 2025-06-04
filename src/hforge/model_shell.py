@@ -9,13 +9,6 @@ This is used because it keeps the input to th emodel simple so the only inputs o
 import torch
 from e3nn import o3
 from hforge.edge_agregator import EdgeAggregator
-from hforge.edge_extraction import EdgeExtractionBasic
-from hforge.edge_extraction import EdgeExtractionGraphConvolutional
-from hforge.edge_extraction import EdgeExtractionUniversalApproximator
-from hforge.node_extraction import NodeExtractionBasic
-from hforge.node_extraction import NodeExtractionGraphConvolutional
-from hforge.node_extraction import NodeExtractionUniversalApproximator
-from hforge.node_extraction import NodeExtractionUniversalApproximator2
 from hforge.mace.mace_descriptor import MACEDescriptor
 from hforge.encodings import EmbeddingBase
 from hforge.utils.importing_facilities import get_object_from_module
@@ -119,7 +112,7 @@ class ModelShell(torch.nn.Module):
         # Message Passing and extract information:
         model_results= {"edge_index":graph_data["reduce_edge_index"]}
         if self.edge_extraction is not None:
-            edge_description=self.edge_extraction(graph_data,embeddings,atomic_env_descriptor )
+            edge_description=self.edge_extraction(graph_data,embeddings,atomic_env_descriptor)
             model_results["edge_description"]=edge_description
         if self.node_extraction is not None:
             node_description=self.node_extraction(graph_data,embeddings,atomic_env_descriptor)

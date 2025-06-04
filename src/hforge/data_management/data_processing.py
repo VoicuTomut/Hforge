@@ -3,6 +3,7 @@ from itertools import cycle
 
 import torch
 from hforge.graph_dataset import graph_from_row, graph_from_row_supercell
+from tqdm import tqdm
 
 def circular_iterate(n_types, available_samples_list, initial_samples_list, max_samples):
     """Needed for the below function"""
@@ -88,6 +89,8 @@ def preprocess_and_save_graphs(datasets, orbitals, parent_output_path, cutoff=4.
     os.makedirs(parent_output_path, exist_ok=True)
 
     # Save graphs
+    print("Preprocessing datasets and saving graphs...")
+    print(f"Using cutoff={cutoff} and orbitals={orbitals}")
     for dataset in datasets:
         # Create directory
         n_atoms = dataset["nr_atoms"][0]
@@ -95,11 +98,13 @@ def preprocess_and_save_graphs(datasets, orbitals, parent_output_path, cutoff=4.
         os.makedirs(path, exist_ok=True)
 
         # Save all graphs of this type in this directory
+        print("Processing dataset with", n_atoms, "atoms")
         count = 0
-        for i, row in enumerate(dataset):
+        for i, row in tqdm(enumerate(dataset)):
             graph = graph_from_row_supercell(row, orbitals, cutoff=cutoff)
             torch.save(graph, os.path.join(path, f"graph_{n_atoms}atoms_{i:04d}.pt"))
             count += 1
+        print(f"Saved {count} graphs for {n_atoms} atoms in {path}")
 
     print(f"Dataset preprocessing completed and saved to {parent_output_path}")
 

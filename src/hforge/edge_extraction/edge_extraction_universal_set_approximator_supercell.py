@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from hforge.matrix_extraction_heads import MatrixExtractionHeadEdgeConvolutional
+from hforge.matrix_extraction_heads import MatrixExtractionHeadSupercell
 
 #TODO: Make it equivariant
 class MessagePassing(nn.Module):
@@ -17,27 +17,53 @@ class MessagePassing(nn.Module):
 
         # Combined edge dimension
         edge_combined_dim = edge_radial_dim + edge_angular_dim
-        input_dim = edge_combined_dim + 2*node_dim
+        all_combined_dim = edge_combined_dim + node_dim
 
-        # Node update networks. WEIGHTS MATRIX
-        self.node_update = nn.Sequential(
-            nn.Linear(node_dim + edge_combined_dim, node_dim),
-            nn.SiLU() #! Change?
+        # First MLP
+        self.mlp1 = nn.Sequential(
+            nn.Linear(all_combined_dim, all_combined_dim),
+            nn.Sigmoid(),
         ).to(self.device)
 
-        # Edge update network (focus on this as per requirements)
-        self.edge_update = nn.Sequential(
-            nn.Linear(input_dim, int(input_dim/2)),
+        # Second MLP
+        dims = torch.linspace(all_combined_dim, node_dim/4, 3, dtype=torch.int32, device=self.device)
+        self.mlp2 = nn.Sequential(
+            nn.Linear(dims[0], dims[1]),
             nn.ReLU(),
-            nn.Linear(int(input_dim/2), int(input_dim/4)),
+            nn.Linear(dims[1], dims[2]),
             nn.ReLU(),
-            nn.Linear(int(input_dim/4), int(input_dim/8)),
+            nn.Linear(dims[2], int(node_dim/2)),
             nn.ReLU(),
-            nn.Linear(int(input_dim/8), int(edge_combined_dim/4)),
+            nn.Linear(int(node_dim/2), node_dim),
+        ).to(self.device)
+
+        self.node_linear_self = nn.Sequential(
+            nn.Linear(node_dim, node_dim),
+        ).to(self.device)
+
+        self.node_linear_neigh = nn.Sequential(
+            nn.Linear(node_dim, node_dim),
+        ).to(self.device)
+
+        self.node_activation_fn = nn.Sequential(
+            nn.Sigmoid(),
+        ).to(self.device)
+
+        # Edge update
+        self.edge_mlp1 = nn.Sequential(
+            nn.Linear(all_combined_dim, all_combined_dim),
+            nn.Sigmoid()
+        ).to(self.device)
+
+        dims = torch.linspace(all_combined_dim, edge_combined_dim/4, 3, dtype=torch.int32, device=self.device)
+        self.edge_mlp2 = nn.Sequential(
+            nn.Linear(dims[0], dims[1]),
             nn.ReLU(),
-            nn.Linear(int(edge_combined_dim/4), int(edge_combined_dim/2)),
+            nn.Linear(dims[1], dims[2]),
             nn.ReLU(),
-            nn.Linear(int(edge_combined_dim/2), edge_combined_dim)
+            nn.Linear(dims[2], int(edge_combined_dim/2)),
+            nn.ReLU(),
+            nn.Linear(int(edge_combined_dim/2), edge_combined_dim),
         ).to(self.device)
 
     def forward(self, node_features, edge_radial, edge_angular, edge_index):
@@ -48,7 +74,6 @@ class MessagePassing(nn.Module):
             edge_angular: Angular features for each edge [num_edges, edge_angular_dim]
             edge_index: Graph connectivity [2, num_edges]
         """
-        # === Node feature update - Graph convolutional layer. ===
         # Get the number of nodes and edges
         num_nodes = node_features.size(0)
         num_edges = edge_index.size(1)
@@ -60,70 +85,72 @@ class MessagePassing(nn.Module):
         src_features = node_features[src]  # [num_edges, node_dim]
         dst_features = node_features[dst]  # [num_edges, node_dim]
 
-        # Normalize by the number of neighbours
+        # * === Node feature update - Universal set approximator. ===
+
         messages = torch.zeros(num_nodes, node_features.shape[1] + edge_radial.shape[1] + edge_angular.shape[1], device=self.device)  # [num_nodes, node_dim + edge_combined_dim]
         for i in range(num_edges):
             source_node_idx = src[i] # [1]
             target_node_idx = dst[i] # [1]
 
-            # Form the submessage of each node but normalization.
+            # Form the submessage of each node.
             submessage = torch.cat([src_features[source_node_idx], edge_radial[i], edge_angular[i]], dim=-1)  # [node_dim + edge_combined_dim], a vector.
 
-            # Count the number of neighbours of this current (source) node.
-            num_neighbours = torch.sum(edge_index[1] == source_node_idx).item()
+            # Send the submessage through a MLP
+            submessage = self.mlp1(submessage)
 
             # Sum it to the complete message of the target node with proper normalization.
-            messages[target_node_idx] += submessage / num_neighbours
-        
-        # "Update" node features (we are still in the aggregation function but we will just add the self submessage to the whole message).
-        # Vector with all number of neighbours of each node
-        num_neighbours_vector = torch.tensor([torch.sum(edge_index[1] == i) for i in range(num_nodes)], device=self.device) # [num_nodes]
-        # Sum to all messages, but only the first node_dim elements (the rest are edge features).
-        messages[:, :node_features.size(1)] += (node_features / torch.sqrt(num_neighbours_vector).unsqueeze(1))
+            messages[target_node_idx] += submessage
 
-        # Normalize by the number of neighbours of each node
-        messages /= torch.sqrt(num_neighbours_vector).unsqueeze(1)
+        # Apply second MLP
+        messages = self.mlp2(messages)
 
-        #* Multiply by trainable weights + activation fn.
-        node_features_updated = self.node_update(messages)  # [num_nodes, node_dim + edge_combined_dim]
+        # Update node features
+        node_features_updated = self.node_activation_fn(self.node_linear_self(node_features) + self.node_linear_neigh(messages)) + node_features # Residual connection
 
-        # === Edge feature update ===
+        # * === Edge feature update ===
 
         # Concatenate source, destination, and edge features
         edge_inputs = torch.cat([src_features, dst_features, edge_radial, edge_angular], dim=-1)
 
-        #* Update edge features
-        edge_features_updated = self.edge_update(edge_inputs)
+        # Update edge features
+        edge_features_updated = torch.zeros_like(torch.cat([edge_radial, edge_angular], dim=-1))
+        for i in range(num_edges):
+            source_node_idx = src[i] # [1]
+            target_node_idx = dst[i] # [1]
+
+            source_input = torch.cat([node_features_updated[source_node_idx], edge_radial[i], edge_angular[i]], dim=-1)
+            target_input = torch.cat([node_features_updated[target_node_idx], edge_radial[i], edge_angular[i]], dim=-1)
+            edge_features_updated[i] += self.edge_mlp2(self.edge_mlp1(source_input) + self.mlp1(target_input))
 
         return node_features_updated, edge_features_updated
 
 
-class EdgeExtractionGraphConvolutional(nn.Module):
-    def __init__(self, config_routine, device='cpu'):
+class EdgeExtractionUniversalApproximator(nn.Module):
+    def __init__(self, model_config, device='cpu'):
 
-        super(EdgeExtractionGraphConvolutional, self).__init__()
+        super(EdgeExtractionUniversalApproximator, self).__init__()
 
         self.device = device
 
         # Get the number of layers
-        self.mp_layers = config_routine.get("mp_layers", 1)  # Default to 1 if not specified
+        self.mp_layers = model_config.get("mp_layers", 1)  # Default to 1 if not specified
 
         # Share parameters across layers or not
-        self.share_parameters = config_routine.get("share_parameters", False)  # Default to False if not specified
+        self.share_parameters = model_config.get("share_parameters", False)  # Default to False if not specified
 
         # Get the orbital information
-        self.orbitals = config_routine["orbitals"]
+        self.orbitals = model_config["orbitals"]
 
         # Get the unique atom types
         self.atom_types = list(self.orbitals.keys())
 
         # Determine input dimension from the atomic environment descriptor
         # This should match the dimension you're using in your model
-        self.input_dim = config_routine.get("descriptor_dim", 64)
+        self.input_dim = model_config.get("descriptor_dim", 64)
 
         # Get edge embedding dimensions from the embeddings or config
-        self.edge_radial_dim = config_routine.get("edge_radial_dim", 8)
-        self.edge_angular_dim = config_routine.get("edge_angular_dim", 9)
+        self.edge_radial_dim = model_config.get("edge_radial_dim", 8)
+        self.edge_angular_dim = model_config.get("edge_angular_dim", 9)
         self.edge_combined_dim = self.edge_radial_dim + self.edge_angular_dim
         
         # Check if parameters should be shared across layers
@@ -149,11 +176,11 @@ class EdgeExtractionGraphConvolutional(nn.Module):
                 num_orbitals_i = self.orbitals[atom1]
                 num_orbitals_j = self.orbitals[atom2]
 
-                self.extraction_heads[str(atom1)][str(atom2)] = MatrixExtractionHeadEdgeConvolutional(
+                self.extraction_heads[str(atom1)][str(atom2)] = MatrixExtractionHeadSupercell(
                     input_dim=head_input_dim,
                     num_orbitals_i=num_orbitals_i,
                     num_orbitals_j=num_orbitals_j,
-                    hidden_dim=config_routine.get("hidden_dim_matrix_extraction", 128)
+                    hidden_dim=model_config.get("hidden_dim_matrix_extraction", 128)
                 )
 
     def forward(self, graph_data, embeddings, atomic_env_descriptor):

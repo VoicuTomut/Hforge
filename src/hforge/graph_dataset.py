@@ -182,7 +182,7 @@ def graph_from_row(row,orbitals, cutoff=3.0):
     # One extra detail that we need to se up the nr of atom tipes that our mode will handle and the orbitals:
 
     # For etch edge is time now to extract the describing block save for the onsites for both H and S matrix
-    proces_edges = preprocess_edges(edge_index)
+    processed_edges = preprocess_edges(edge_index)
     # print("h matrix:", row['h_matrix'])
     hm = np.array(row['h_matrix'])
     # print("h matrix.shape:", hm.shape)
@@ -193,11 +193,11 @@ def graph_from_row(row,orbitals, cutoff=3.0):
     h_on_sites, h_hop = decompose_matrix(system_mat=hm,
                                          orbitals=orbitals,
                                          elements_z=row["atomic_types_z"],
-                                         proces_edges=proces_edges)
+                                         processed_edges=processed_edges)
     s_on_sites, s_hop = decompose_matrix(system_mat=sm,
                                          orbitals=orbitals,
                                          elements_z=row["atomic_types_z"],
-                                         proces_edges=proces_edges)
+                                         processed_edges=processed_edges)
 
     # Now we relly have evrything let's conver tit to graph specific dataset
     # The grap will have the following atributes:
@@ -235,7 +235,7 @@ def graph_from_row_supercell(row, orbitals, cutoff):
                                                              cell=cell,
                                                              true_self_interaction=False)
     # ? Frozen set
-    proces_edges = preprocess_edges(edge_index)
+    processed_edges = preprocess_edges(edge_index)
 
     # Extract the hamiltonian and overlap matrices
     h_matrix = row['h_matrix']
@@ -247,9 +247,9 @@ def graph_from_row_supercell(row, orbitals, cutoff):
     h_on_sites, h_hop = decompose_matrix_supercell(system_mat=h_matrix,
                                          orbitals=orbitals,
                                          elements_z=row["atomic_types_z"],
-                                         proces_edges=proces_edges)
+                                         processed_edges=processed_edges)
     s_on_sites, s_hop = decompose_matrix_supercell(system_mat=s_matrix,
                                          orbitals=orbitals,
                                          elements_z=row["atomic_types_z"],
-                                         proces_edges=proces_edges)
+                                         processed_edges=processed_edges)
     a

@@ -1,45 +1,49 @@
-from prettytable import PrettyTable
-import os
+import torch
 
 def main():
-    print(4 / 2)
-    print( 5 / 2)
-    print( 5 // 2)
-    print( 5 % 2)
+    ####################################### COO:
+    import torch
 
-    table = PrettyTable(["Type", "Last model save", "New prediction"])
-    print(table)
+    # Create a dense tensor and convert to sparse
+    a = torch.tensor([[0, 2, 0], [3, 0, 0]])
+    b = torch.tensor([[1, 0, 0], [3, 0, 0]])
+    c = torch.tensor([[0, 0, 0], [0, 0, 0]])
+    sparse_a = a.to_sparse()
+    sparse_b = b.to_sparse()
+    sparse_a = c.to_sparse()
 
-    a = "angel"
-    end = None
-    start = None
-    print(a[start:end])
+    # print(a-b)
+    # print(sparse_a - sparse_b)
+    print(sparse_a.to_dense())
+    acccw
 
-    folder = os.path.basename(os.path.normpath('/folderA/folderB/folderC/folderD/'))
-    print(folder)
+    # Print sparse tensor attributes explicitly
+    print(f"indices:\n{sparse_a.indices()}")
+    print(f"values:\n{sparse_a.values()}")
+    print(f"size:\n{sparse_a.size()}")
+    print(f"nnz: {sparse_a._nnz()}")
+    print(f"layout: {sparse_a.layout}")
+
+    ####################################### cSR:
 
     import torch
 
-    torch.manual_seed(42)  # Set a fixed seed
+    # Dense tensor
+    a = torch.tensor([[0, 2, 0], [3, 0, 0]])
 
-    subset_size = 10  # Example subset size
-    dataset_size = 100  # Example dataset size
+    # Convert to CSR sparse format
+    csr_a = a.to_sparse_csr()
+    csr_b = b.to_sparse_csr()
+    print(a - b)
+    print(csr_a - csr_b)
 
-    # Generate random indices twice with the same seed
-    indices1 = torch.randperm(dataset_size)[:subset_size]
-    torch.manual_seed(42)
-    indices2 = torch.randperm(dataset_size)[:subset_size]
-
-    print("First set of indices:", indices1)
-    print("Second set of indices:", indices2)
-
-    # Check if the generated indices are identical
-    print("Reproducible:", torch.equal(indices1, indices2))
-
-    a = torch.tensor([1, 2, 3], device="cuda")
-    b = torch.tensor([4, 5, 6])
-    print(a.device)
-
+    # Print CSR tensor attributes
+    print(f"crow_indices (compressed row pointers):\n{csr_a.crow_indices()}")
+    print(f"col_indices (column indices per value):\n{csr_a.col_indices()}")
+    print(f"values:\n{csr_a.values()}")
+    print(f"size:\n{csr_a.size()}")
+    print(f"nnz: {csr_a._nnz()}")
+    print(f"layout: {csr_a.layout}")
 
 if __name__ == "__main__":
     main()

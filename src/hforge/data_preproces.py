@@ -10,7 +10,7 @@ from scipy import sparse
 
 def preprocess_edges(edge_list):
     """
-    Converts the edge list into a set of frozensets for O(1) lookup.
+    Converts the edge list into a set of frozensets for O(1) lookup. Unique edges are represented as frozensets to ensure that the order of nodes does not matter.
     """
     return set(frozenset((edge[0], edge[1])) for edge in zip(edge_list[0], edge_list[1]))
 
@@ -23,7 +23,7 @@ def find_edge(edge, edge_set):
     """
     return frozenset(edge) in edge_set
 
-def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
+def decompose_matrix(system_mat, orbitals, elements_z, processed_edges):
     """
     Decomposes a system matrix into on-site and hopping matrices based on connectivity.
 
@@ -31,13 +31,13 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
     which are categorized as either on-site blocks (diagonal blocks) or
     hopping blocks (off-diagonal blocks corresponding to existing edges).
 
-    The connectivity between blocks is determined by the `proces_edges` set.
+    The connectivity between blocks is determined by the `processed_edges` set.
 
     :param system_mat: 2D NumPy array representing the full system matrix.
     :param orbitals: Dictionary mapping each atomic number (Z) to the number
                      of orbitals associated with that element.
     :param elements_z: List of atomic numbers (Z) corresponding to each block in the system matrix.
-    :param proces_edges: A preprocessed set of edges (frozensets) indicating connectivity between blocks.
+    :param processed_edges: A preprocessed set of edges (frozensets) indicating connectivity between blocks.
     :return: A tuple containing:
              - on_sites: List of 2D NumPy arrays representing diagonal blocks (on-site matrices).
              - hop: List of 2D NumPy arrays representing off-diagonal blocks (hopping matrices)
@@ -57,7 +57,7 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
             elif a != b:
                 # We need to check if th edge exists
                 # print("edge:", [a, b])
-                edge_exists = find_edge([a, b], proces_edges)
+                edge_exists = find_edge([a, b], processed_edges)
                 # print(f"edge:{[a, b]} ,{edge_exists=}")
                 if edge_exists:
                     matrix_block = system_mat[i:i + orbitals[a_z], j:j + orbitals[b_z]]
@@ -70,21 +70,21 @@ def decompose_matrix(system_mat, orbitals, elements_z, proces_edges):
     # print(f"{len(on_sites)=},\n {len(hop)=}")
     return on_sites, hop
 
-def decompose_matrix_supercell(system_mat, orbitals, elements_z, proces_edges):
+def decompose_matrix_supercell(system_mat, orbitals, elements_z, processed_edges):
     """
-    Decomposes a system matrix (csr) into on-site and hopping matrices for a supercell.
+    Decomposes a system matrix (sparse) into on-site and hopping matrices for a supercell.
 
-    This function divides the input csr system matrix into smaller submatrices,
+    This function divides the input sparse system matrix into smaller submatrices,
     which are categorized as either on-site blocks or
     hopping blocks (corresponding to existing edges).
 
-    The connectivity between blocks is determined by the `proces_edges` set.
+    The connectivity between blocks is determined by the `processed_edges` set.
 
     :param system_mat: 2D NumPy array representing the full system matrix.
     :param orbitals: Dictionary mapping each atomic number (Z) to the number
                      of orbitals associated with that element.
     :param elements_z: List of atomic numbers (Z) corresponding to each block in the system matrix.
-    :param proces_edges: A preprocessed set of edges (frozensets) indicating connectivity between blocks.
+    :param processed_edges: A preprocessed set of edges (frozensets) indicating connectivity between blocks.
     :return: A tuple containing:
              - on_sites: List of 2D NumPy arrays representing diagonal blocks (on-site matrices).
              - hop: List of 2D NumPy arrays representing off-diagonal blocks (hopping matrices)
@@ -92,24 +92,45 @@ def decompose_matrix_supercell(system_mat, orbitals, elements_z, proces_edges):
     """
 
     # === Convert the csr matrix to a dense matrix ===
-    system_mat = system_mat.todense() if sparse.issparse(system_mat) else system_mat
+    if sparse.issparse(system_mat):
+        system_mat = system_mat.todense()
+    else:
+        raise ValueError("Matrix is not in sparse format")
 
     on_sites = []
     hoppings = []
     i, j = 0, 0
     print("system_mat.shape[1] // sum(orbitals.values()) = ", system_mat.shape[1] // sum(orbitals.values()))
     for a, a_z in enumerate(elements_z):
-        for b, b_z in enumerate(range(system_mat.shape[1] // sum(orbitals.values()))):
-            if a == b:
-                # Onsite.
-                matrix_block = system_mat[i:i + orbitals[a_z], j:j + orbitals[b_z]]
-                on_sites.append(matrix_block)
-            else:
-                pass
 
-    a
+        for cell_idx in range(system_mat.shape[1] // sum(orbitals.values())): #Iterate through unit cells
+            for b, b_z in enumerate(elements_z): # In each unit cell, there are n_atoms.
 
-    # return on_sites, hop
+                if a == b and cell_idx==0:
+                    # Onsite. Extract the orbitals matrix block.
+                    matrix_block = system_mat[i:i + orbitals[a_z], j:j + orbitals[b_z]]
+                    on_sites.append(matrix_block)
+                else:
+                    # Hopping. Extract the orbitals matrix block.
+                    # Check first if edge exists. 
+                    # // TODO: If not, we should create it and make it predict 0. However, at this point in the code all necessary edges should have been correctly created. If there is no edge when needed, it means tht the cutoff radius is too low.
+                    edge_exists = find_edge([a, b], processed_edges)
+                    if edge_exists:
+                        matrix_block = system_mat[i:i + orbitals[a_z], j:j + orbitals[b_z]]
+                        hoppings.append(matrix_block)
+                    else:
+                        # There should be enough edges during the training.
+                        raise ValueError(f"Edge {a, b} does not exist in the preprocessed edges. Check the cutoff radius or the edge preprocessing step.")
+                    
+                j += orbitals[b_z] # Move to the next block in the row
+            j = 0 # Reset j to 0 for the next cell
+        i += orbitals[a_z] # Move to the next block in the column
+
+    # Once we have extracted all th blocks, we can convert them to sparse format (COO).
+    on_sites = [m.to_sparse() for m in on_sites]  # Convert each on-site matrix to sparse format
+    hoppings = [m.to_sparse() for m in hoppings]  # Convert each hopping matrix to sparse format
+
+    return on_sites, hoppings
 
 def to_device(data, device):
     """

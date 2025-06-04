@@ -48,7 +48,7 @@ def load_model(model, optimizer=None, path="best_model.pt", device='cpu'):
 
     return model, optimizer, epoch, history
 
-def initialize_mode(model_config, device='cpu'):
+def initialize_model(model_config, device='cpu'):
     """
     Initialize the model based on the provided configuration.
 
@@ -73,7 +73,7 @@ def load_model_from_directory(directory: str, model_filename: str, weights_only=
     config = load_config(directory + "/training_config.yaml")
 
     # === Model Initialization ===
-    model = initialize_mode(config["model"], device=device)
+    model = initialize_model(config["model"], device=device)
 
     # === Load the model ===
     model_filename = model_filename

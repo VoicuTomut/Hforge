@@ -1,6 +1,16 @@
 import torch
 
 def main():
+    import torch
+    loss = torch.nn.MSELoss()
+    input = torch.tensor([[[0, 2, 0], [3, 0, 0]], [[1, 1, 0], [3, 0, 0]]], dtype=torch.float)
+    target = torch.tensor([[[1, 0, 0], [3, 0, 0]], [[1, 2, 0], [3, 0, 0]]], dtype=torch.float)
+    output = loss(input, target)
+    print(output.item())
+
+
+
+    a
     ####################################### COO:
     import torch
 

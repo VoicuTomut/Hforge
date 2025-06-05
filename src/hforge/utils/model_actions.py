@@ -26,7 +26,17 @@ def generate_hamiltonian_prediction(model, input_graph, loss_fn):
 
     loss, _ = loss_fn(output_graph, target_graph)
 
+    print("\n\nn_atoms: ", len(input_graph["x"]))
+
+    print("\npred_graph:")
+    print("len(hop): ", len(output_graph["edge_description"]))
+    print("len(onsite): ", len(output_graph["node_description"]))
+
+    # print("\ntarget_graph:")
+    # print("len(hop): ", len(target_graph["edge_description"]))  
+    # print("len(onsite): ", len(target_graph["node_description"]))
     predicted_h = reconstruct_matrix(output_graph["edge_description"], output_graph["node_description"], output_graph["edge_index"])
     original_h = reconstruct_matrix(target_graph["edge_description"], target_graph["node_description"], output_graph["edge_index"])
+    
 
     return loss, predicted_h, original_h

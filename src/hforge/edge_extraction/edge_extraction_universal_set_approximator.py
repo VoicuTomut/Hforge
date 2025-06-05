@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import numpy as np
 
 class MatrixExtractionHead(nn.Module):
     """
@@ -293,6 +293,8 @@ class EdgeExtractionUniversalApproximator(nn.Module):
             # Generate the hopping matrix
             hopping_matrix = hopping_head(edge_input)
             hoppings.append(hopping_matrix)
+        print("edges generation hoppings.length= ", len(hoppings))  # Debugging line to check the shape of the hopping matrix
+        
 
         # Convert list of hopping matrices to a single tensor
         # This stacks all matrices along a new first dimension

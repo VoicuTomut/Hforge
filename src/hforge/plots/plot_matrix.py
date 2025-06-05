@@ -232,6 +232,8 @@ def reconstruct_matrix(hop, onsite, reduce_edge_index):
     Returns:
     torch.Tensor: The reconstructed block matrix
     """
+    # print("len(hop)=", len(hop))
+    # print("len(onsite)=", len(onsite))
     # Determine the number of sites
     num_sites = len(onsite)
 

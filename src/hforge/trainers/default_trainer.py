@@ -122,6 +122,10 @@ class Trainer:
             }
 
             # Calculate loss
+            print("\nTraining.")
+            print("pred_graph[edge_description].shape]= ", pred_graph["edge_description"].shape)
+            print("target_graph[edge_description].shape]= ", target_graph["edge_description"].shape)
+            print("")
             loss, component_losses = self.loss_fn(pred_graph, target_graph)
 
             # Backward pass
@@ -138,6 +142,7 @@ class Trainer:
             total_edge_loss += component_losses["edge_loss"]
             total_node_loss += component_losses["node_loss"]
             num_batches += 1
+            
 
         # Average losses
         if num_batches == 0:
@@ -257,6 +262,8 @@ class Trainer:
 
         # Begin training loop
         for epoch in range(num_epochs):
+            if epoch==1:
+                a
             epoch_start = time.time()
 
             # Training phase

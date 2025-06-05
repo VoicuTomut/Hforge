@@ -177,6 +177,9 @@ def graph_from_row(row,orbitals, cutoff=3.0):
                                                              true_self_interaction=False)
 
     # print(f"{edge_index=},\n {shifts=},\n {unit_shifts=},\n {cell=}")
+    
+    print(f"edge_index.shape= {edge_index.shape}, shifts.shape= {shifts.shape}, unit_shifts.shape= {unit_shifts.shape}, cell.shape= {cell.shape}")
+    # print(f"{edge_index=},\n {unit_shifts=}")
 
     # Now we finally have al the information required for building a graph
     # One extra detail that we need to se up the nr of atom tipes that our mode will handle and the orbitals:

@@ -51,7 +51,7 @@ def load_preprocessed_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, 
         # === Load ALL aBN dataset and convert it to graph ===
         # Load datasets
         # WARNING: THIS WILL PROCESS ALL DATSET. MIGHT TAKE A LOT OF TIME. BUT WILL DO JUST ONCE.
-        datasets = read_datasets_list_from_parent_dir(parent_dir, max_samples=None, seed=seed)
+        datasets = read_datasets_list_from_parent_dir(parent_dir, max_samples=max_samples, seed=seed)
 
         # Convert them to graphs and save locally
         preprocess_and_save_graphs(datasets, orbitals, graph_dataset_dir, cutoff=cutoff)

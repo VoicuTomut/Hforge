@@ -4,7 +4,8 @@
 import torch
 
 # Local application imports
-from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix, plot_error_matrices, \
+from hforge.data_management.dataset_load import load_graph_dataset_from_parent_dir, split_graph_dataset
+from hforge.plots.plot_matrix import reconstruct_matrix, plot_error_matrices, \
     plot_error_matrices_interactive
 from hforge.utils import load_model_and_dataset_from_directory, create_directory, get_object_from_module
 
@@ -18,7 +19,28 @@ def main():
     directory = r"C:\Users\angel\Documents\GitHub\Hforge\example_results\hplots_usetapprox_2mp_sharing_resume_sumlossfn"
     model_filename = "train_best_model.pt"
 
-    model, history, train_dataset, validation_dataset, config = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
+    # === Load model ===
+    model, history, config = load_model_from_directory(directory, model_filename, weights_only=False)
+
+    dataset_config = config["dataset"]
+    orbitals = config["orbitals"]
+
+    print("Loading dataset...")
+    dataset = load_graph_dataset_from_parent_dir(
+        parent_dir=dataset_config["path"],
+        orbitals=orbitals,
+        cutoff=dataset_config["cutoff"],
+        max_samples=dataset_config["max_samples"],
+        seed=dataset_config["seed"]
+    )
+    train_dataset, val_dataset, test_dataset = split_graph_dataset(
+        dataset=dataset,
+        training_split_ratio=dataset_config["training_split_ratio"],
+        test_split_ratio=dataset_config["test_split_ratio"],
+        seed=dataset_config["seed"],
+        print_finish_message=True
+    )
+    
 
     # === Generate prediction and plots ===
 

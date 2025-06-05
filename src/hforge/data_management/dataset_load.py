@@ -38,14 +38,14 @@ def load_and_process_raw_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.
 
     return graph_dataset
 
-def load_preprocessed_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_samples=None, seed=42):
+def load_graph_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_samples=None, seed=42):
     # Check if directory with dataset converted to graph already exists
     graph_dataset_dir = os.path.dirname(parent_dir)
     graph_foldername = 'aBN_HSX_graphs'
     graph_dataset_dir = os.path.join(graph_dataset_dir, graph_foldername)
     if os.path.exists(graph_dataset_dir):
         # Load the already preprocessed graphs, but only max_samples of them.
-        dataset =  LazyGraphDataset(graph_dataset_dir, max_samples=max_samples, seed=seed)
+        dataset =  LazyGraphDataset(parent_dir=graph_dataset_dir, max_samples=max_samples, seed=seed)
         return dataset
     else:
         # === Load ALL aBN dataset and convert it to graph ===
@@ -57,7 +57,7 @@ def load_preprocessed_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, 
         preprocess_and_save_graphs(datasets, orbitals, graph_dataset_dir, cutoff=cutoff)
 
         # Load the needed data (by calling again this function)
-        return load_preprocessed_dataset_from_parent_dir(graph_dataset_dir, orbitals, cutoff, max_samples, seed)
+        return load_graph_dataset_from_parent_dir(graph_dataset_dir, orbitals, cutoff, max_samples, seed)
 
 
 

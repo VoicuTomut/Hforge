@@ -5,7 +5,7 @@ and advanced learning rate scheduling for faster convergence and lower loss
 import yaml
 
 from hforge.data_management.dataset_load import load_and_process_raw_dataset_from_parent_dir, split_raw_dataset, \
-    prepare_dataloaders, load_preprocessed_dataset_from_parent_dir, split_graph_dataset
+    prepare_dataloaders, load_graph_dataset_from_parent_dir, split_graph_dataset
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import  CosineAnnealingWarmRestarts
@@ -54,7 +54,7 @@ def main():
     dataset_config = config["dataset"]
     orbitals = config["orbitals"]
 
-    dataset = load_preprocessed_dataset_from_parent_dir(
+    dataset = load_graph_dataset_from_parent_dir(
         parent_dir=dataset_config["path"],
         orbitals=orbitals,
         cutoff=dataset_config["cutoff"],

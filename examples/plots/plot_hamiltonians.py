@@ -1,12 +1,17 @@
 """Plots the hamiltonian matrices predictions of the specified model for all samples in the dataset with which it has been trained/validated."""
 
 # Standard library imports
+import os
 import torch
 
 # Local application imports
+from hforge.data_management.dataset_load import load_preprocessed_dataset_from_parent_dir, split_graph_dataset
+from hforge.model_shell import ModelShell
 from hforge.plots.plot_matrix import plot_comparison_matrices, reconstruct_matrix, plot_error_matrices, \
     plot_error_matrices_interactive
-from hforge.utils import load_model_and_dataset_from_directory, create_directory, get_object_from_module
+from hforge.utils import create_directory, get_object_from_module
+from hforge.utils.importing_facilities import load_config
+from hforge.utils.model_load import load_model
 
 
 # TODO: Write in the title the nr of atoms, if it's train or val sample and the minimum loss.
@@ -15,10 +20,49 @@ def main():
     # === Load model ===
 
     # * Change the directory where the model is saved with its configuration .yaml file.
-    directory = r"C:\Users\angel\Documents\GitHub\Hforge\example_results\hplots_usetapprox_2mp_sharing_resume_sumlossfn"
+    directory = r"example_results/usetapprox_2mp_sharing_mse_mean"
     model_filename = "train_best_model.pt"
 
-    model, history, train_dataset, validation_dataset, config = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
+    # === Load configuration ===
+    config = load_config(directory+"/training_config.yaml")
+
+    # === Dataset Preparation ===
+    dataset_config = config["dataset"]
+    orbitals = config["orbitals"]
+
+    dataset = load_preprocessed_dataset_from_parent_dir(
+        parent_dir=dataset_config["path"],
+        orbitals=orbitals,
+        cutoff=dataset_config["cutoff"],
+        max_samples=dataset_config["max_samples"],
+        seed=dataset_config["seed"]
+    )
+
+    train_dataset, validation_dataset, _ = split_graph_dataset(
+        dataset=dataset,
+        training_split_ratio=dataset_config["training_split_ratio"],
+        test_split_ratio=dataset_config["test_split_ratio"],
+        seed=dataset_config["seed"],
+        print_finish_message=True
+    )
+
+    # === Model Configuration ===
+    model_config = config["model"]
+    # Inject classes into model config (since YAML can't store class references)
+    model_config["atomic_descriptors"]["interaction_cls_first"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls_first"], module='hforge.mace.modules')
+    model_config["atomic_descriptors"]["interaction_cls"] = get_object_from_module(model_config["atomic_descriptors"]["interaction_cls"], module='hforge.mace.modules')
+
+    model = ModelShell(model_config)
+
+    # === Model loading ===
+    model_filename = "train_best_model.pt"
+    model_path = os.path.abspath(directory + "/" + model_filename)
+    checkpoint = torch.load(model_path, weights_only=True, map_location="cpu")
+    model.load_state_dict(checkpoint['model_state_dict'])
+
+    history = checkpoint.get('history', {})
+
+    # model, history, train_dataset, validation_dataset, config = load_model_and_dataset_from_directory(directory, model_filename, weights_only=False, return_datasets=True)
 
     # === Generate prediction and plots ===
 

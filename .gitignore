@@ -1,5 +1,6 @@
 # Ignore python virtual environment directory
 .venv
+.venv_wsl
 # Ignore data directory
 Data
 # Ignore checkpoints
@@ -18,6 +19,7 @@ __pycache__/
 .idea
 # Ignore results of the example
 example_results
+pre-trained_models
 
 # For Angel:
 Data_new

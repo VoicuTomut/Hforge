@@ -41,7 +41,7 @@ def load_and_process_raw_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.
 def load_preprocessed_dataset_from_parent_dir(parent_dir, orbitals, cutoff=4.0, max_samples=None, seed=42):
     # Check if directory with dataset converted to graph already exists
     graph_dataset_dir = os.path.dirname(parent_dir)
-    graph_foldername = 'aBN_HSX_graphs'
+    graph_foldername = 'aBN_HSX_graphs_andrei'
     graph_dataset_dir = os.path.join(graph_dataset_dir, graph_foldername)
     if os.path.exists(graph_dataset_dir):
         # Load the already preprocessed graphs, but only max_samples of them.
